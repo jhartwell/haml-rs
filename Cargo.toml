@@ -1,0 +1,20 @@
+[package]
+name = "hamlrs"
+version = "0.1.0"
+authors = ["Jon Hartwell <jon@dontbreakthebuild.com>"]
+
+[lib]
+name = "haml"
+path = "src/lib.rs"
+test = true
+doctest = true
+doc = true
+
+[[bin]]
+name = "hamlrs"
+path = "src/bin/main.rs"
+test = true
+doctest = true
+doc = true
+
+[dependencies]
