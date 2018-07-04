@@ -1,3 +1,7 @@
+/// TODO: Need to find a way to make sure that we keep the order of inner text and children that are added
+/// if we add children first and then text but display text first that will mess up display
+/// Thoughts: Use a vec and push each element onto the "stack" and then pull those to figure it out
+/// This may require a new trait to keep the elements the same
 use ast::Element;
 use std::collections::HashMap;
 
@@ -16,7 +20,7 @@ impl Div {
             children: None,
             attributes: None,
             inner_text: None,
-            dirty: false,
+            dirty: true,
             html: String::new(),
         }
     }
@@ -68,19 +72,25 @@ impl Element for Div {
     fn is_dirty(&self) -> bool {
         self.dirty
     }
+
     fn to_html(&mut self) -> &str {
         if self.dirty {
             self.html.clear();
             self.html.push_str("<div");
             if let Some(ref attributes) = self.attributes {
                 for (key, value) in attributes.iter() {
-                    self.html.push_str(&format!(" {}={}", key, value));
+                    self.html.push_str(&format!(" {}=\"{}\"", key, value));
                 }
             }
-
+            self.html.push('>');
+            if let Some(ref inner_text) = self.inner_text {
+                self.html.push_str(&format!("\n  {}\n", inner_text));
+            }
             if let Some(ref mut children) = self.children {
+                self.html.push('\n');
                 for child in children {
                     self.html.push_str(&format!("  {}", child.to_html()));
+                    self.html.push('\n');
                 }
             }
 
@@ -179,11 +189,140 @@ mod test {
 
     #[test]
     fn create_div_child_has_attributes() {
+        let mut div = Div::new();
+        let mut child = Div::new();
+        let mut map = HashMap::new();
+        let key = "id".to_string();
+        let value = "test".to_string();
 
+        let expected_size : usize = 1;
+        let expected_key = key.clone();
+        let expected_value = value.clone();
+        map.insert(key, value);
+
+        child.add_attributes(map);
+        div.add_child(Box::new(child));
+
+        if let Some(ref children) = div.children() {
+            assert_eq!(expected_size, children.len());
+
+            if let Some(ref actual_child) = children.get(0) {
+                if let Some(ref attributes) = actual_child.attributes() {
+                    assert_eq!(true, attributes.contains_key(&expected_key));
+                    assert_eq!(&expected_value, attributes.get(&expected_key).unwrap());
+                } else {
+                    panic!("Expected attributes on child element but found none.");
+                }
+            } else {
+                panic!("Could not get the child from the Vec of child elements.");
+            }
+        } else {
+            panic!("Expect at least one child but found none.");
+        }
     }
     
     #[test]
     fn create_div_with_nested_children() {
+        let mut div = Div::new();
+        let mut first_child = Div::new();
+        let second_child = Div::new();
 
+        first_child.add_child(Box::new(second_child));
+        div.add_child(Box::new(first_child));
+
+        if let Some(ref div_children) = div.children() {
+            if let Some(ref first_child) = div_children.get(0) {
+                if let Some(ref first_children) = first_child.children() {
+                    if let Some(ref second_child) = first_children.get(0) {
+                        assert_eq!(&None, second_child.attributes());
+                        assert_eq!(&None, second_child.children());
+                    } else {
+                        panic!("Expected a second child but found none.");
+                    }
+                } else {
+                    panic!("Expected there to be at least one child but found none");
+                }
+            } else {
+                panic!("Expected to find a child but found none.");
+            }
+        } else {
+            panic!("Expected children but found none.");
+        }
+    }
+
+    #[test]
+    fn div_html() {
+        let mut div = Div::new();
+        assert_eq!("<div></div>", div.to_html());
+    }
+
+    #[test]
+    fn div_html_with_child() {
+        let mut div = Div::new();
+        let child = Div::new();
+        div.add_child(Box::new(child));
+        assert_eq!("<div>\n  <div></div>\n</div>", div.to_html());
+    }
+
+    #[test]
+    fn div_html_with_nested_children() {
+        let mut div = Div::new();
+        let mut child = Div::new();
+        let grandchild = Div::new();
+
+        child.add_child(Box::new(grandchild));
+        div.add_child(Box::new(child));
+        assert_eq!("<div>\n  <div>\n  <div></div>\n</div>\n</div>", div.to_html());
+
+    }
+
+    #[test]
+    fn div_html_with_attributes() {
+        let mut div = Div::new();
+        let mut map = HashMap::new();
+        let key = "id".to_string();
+        let value = "test".to_string();
+        let expected_key = key.clone();
+        let expected_value = value.clone();
+        map.insert(key, value);
+        div.add_attributes(map);
+
+        assert_eq!(format!("<div {}=\"{}\"></div>", expected_key, expected_value), div.to_html());
+    }
+
+    #[test]
+    fn div_html_no_div_attributes_child_with_attributes() {
+        let mut div = Div::new();
+        let mut child = Div::new();
+        let mut map = HashMap::new();
+        let key = "id".to_string();
+        let value = "test".to_string();
+        let expected_key = key.clone();
+        let expected_value = value.clone();
+        map.insert(key, value);
+        child.add_attributes(map);
+        div.add_child(Box::new(child));
+
+        assert_eq!(format!("<div>\n  <div {}=\"{}\"></div>\n</div>", expected_key, expected_value), div.to_html());
+    }
+
+    #[test]
+    fn div_inner_text() {
+        let mut div = Div::new();
+        let expected_text = "This is a test";
+        div.set_inner_text(expected_text);
+        if let Some(ref text) = div.inner_text() {
+            assert_eq!(expected_text, text);
+        } else {
+            panic!("Expected inner text but found none.");
+        }
+    }
+
+    #[test]
+    fn div_inner_text_to_html() {
+        let mut div = Div::new();
+        let expected_text = "This is a test";
+        div.set_inner_text(expected_text);
+        assert_eq!(format!("<div>\n  {}\n</div>", expected_text), div.to_html());        
     }
 }
