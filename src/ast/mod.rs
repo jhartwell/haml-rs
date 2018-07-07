@@ -8,10 +8,7 @@ pub struct Attribute {
 
 impl Attribute {
     pub fn new(key: String, value: String) -> Attribute {
-        Attribute {
-            key,
-            value,
-        }
+        Attribute { key, value }
     }
 }
 
@@ -37,9 +34,7 @@ pub trait Html {
 
             if let Some(ref children) = self.children() {
                 for child in children {
-                    html_builder.push_str(
-                        &child.to_html()
-                    );
+                    html_builder.push_str(&child.to_html());
                 }
             }
             html_builder.push_str(&format!("</{}>", tag));
@@ -56,7 +51,7 @@ impl Html for Text {
     fn tag(&self) -> &Option<String> {
         &None
     }
-  
+
     fn to_html(&self) -> String {
         self.text.clone()
     }
@@ -80,9 +75,7 @@ impl Html for Text {
 
 impl Text {
     pub fn new(text: String) -> Text {
-        Text {
-            text,
-        }
+        Text { text }
     }
 }
 
@@ -92,17 +85,11 @@ pub struct Comment {
 
 impl Comment {
     pub fn new(text: String) -> Comment {
-        Comment {
-            text,
-        }
+        Comment { text }
     }
 
     pub fn boxed(text: String) -> Box<Comment> {
-        Box::new(
-            Comment {
-                text,
-            }
-        )
+        Box::new(Comment { text })
     }
 }
 
@@ -110,7 +97,7 @@ impl Html for Comment {
     fn tag(&self) -> &Option<String> {
         &None
     }
-  
+
     fn to_html(&self) -> String {
         self.text.clone()
     }
@@ -129,7 +116,7 @@ impl Html for Comment {
 
     fn add_child(&mut self, child: Box<dyn Html>) {
         // do nothing as text does not allow children
-    }  
+    }
 }
 
 pub struct Element {
@@ -148,13 +135,11 @@ impl Element {
     }
 
     pub fn boxed(tag: String) -> Box<Element> {
-        Box::new(
-            Element {
-                tag: Some(tag),
-                children: None,
-                attributes: None,
-            }
-        )
+        Box::new(Element {
+            tag: Some(tag),
+            children: None,
+            attributes: None,
+        })
     }
 }
 
@@ -175,9 +160,7 @@ impl Html for Element {
         if let Some(ref mut attributes) = self.attributes {
             attributes.push(attribute);
         } else {
-            self.attributes = Some(
-                vec![attribute]
-            );
+            self.attributes = Some(vec![attribute]);
         }
     }
 
@@ -185,11 +168,7 @@ impl Html for Element {
         if let Some(ref mut children) = self.children {
             children.push(child);
         } else {
-            self.children = Some(
-                vec![
-                    child
-                ]
-            );
+            self.children = Some(vec![child]);
         }
-    }  
+    }
 }
