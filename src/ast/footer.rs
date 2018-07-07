@@ -1,12 +1,12 @@
 use ast::{Attribute, Attributes, Html};
 
-pub struct Span {
+pub struct Footer {
     children: Option<Vec<Box<dyn Html>>>,
     attributes: Option<Attributes>,
     tag: Option<String>,
 }
 
-impl Html for Span {
+impl Html for Footer {
     fn tag(&self) -> &Option<String> {
         &self.tag
     }
@@ -41,51 +41,22 @@ impl Html for Span {
     }
 }
 
-impl Span {
-    pub fn new() -> Span {
-        Span {
+impl Footer {
+    pub fn new() -> Footer {
+        Footer {
             attributes: None,
             children: None,
-            tag: Some("span".to_string()),
+            tag: Some("footer".to_string()),
         }
     }
 
     pub fn boxed() -> Box<Self> {
         Box::new(
-            Span {
+            Footer {
                 attributes: None,
                 children: None,
-                tag: Some("span".to_string()),
+                tag: Some("footer".to_string()),
             }
         )
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use ::ast::Text;
-
-    #[test]
-    fn test_basic_span() {
-        let span = Span::new();
-        assert_eq!("<span></span>", span.to_html());
-    }
-
-    #[test]
-    fn test_span_with_inner_text() {
-        let expected_text = "This is a test";
-        let text = Text::new(expected_text.to_string());
-        let mut span = Span::new();
-        span.add_child(Box::new(text));
-        assert_eq!(format!("<span>{}</span>", expected_text), span.to_html());
-    }
-
-    #[test]
-    fn test_span_with_child() {
-        let mut parent = Span::new();
-        let child = Span::boxed();
-        parent.add_child(child);
-        assert_eq!("<span><span></span></span>", parent.to_html());
     }
 }
