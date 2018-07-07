@@ -1,21 +1,3 @@
-pub mod a;
-pub mod article;
-pub mod aside;
-pub mod custom;
-pub mod details;
-pub mod div;
-pub mod figcaption;
-pub mod figure;
-pub mod footer;
-pub mod header;
-pub mod main;
-pub mod mark;
-pub mod nav;
-pub mod section;
-pub mod span;
-pub mod summary;
-pub mod time;
-
 pub type Attributes = Vec<Attribute>;
 
 #[derive(Debug, PartialEq)]
@@ -102,4 +84,112 @@ impl Text {
             text,
         }
     }
+}
+
+pub struct Comment {
+    text: String,
+}
+
+impl Comment {
+    pub fn new(text: String) -> Comment {
+        Comment {
+            text,
+        }
+    }
+
+    pub fn boxed(text: String) -> Box<Comment> {
+        Box::new(
+            Comment {
+                text,
+            }
+        )
+    }
+}
+
+impl Html for Comment {
+    fn tag(&self) -> &Option<String> {
+        &None
+    }
+  
+    fn to_html(&self) -> String {
+        self.text.clone()
+    }
+
+    fn children(&self) -> &Option<Vec<Box<dyn Html>>> {
+        &None
+    }
+
+    fn attributes(&self) -> &Option<Attributes> {
+        &None
+    }
+
+    fn add_attribute(&mut self, attribute: Attribute) {
+        // do nothing as text does not allow attributes
+    }
+
+    fn add_child(&mut self, child: Box<dyn Html>) {
+        // do nothing as text does not allow children
+    }  
+}
+
+pub struct Element {
+    tag: Option<String>,
+    children: Option<Vec<Box<dyn Html>>>,
+    attributes: Option<Attributes>,
+}
+
+impl Element {
+    pub fn new(tag: String) -> Element {
+        Element {
+            tag: Some(tag),
+            children: None,
+            attributes: None,
+        }
+    }
+
+    pub fn boxed(tag: String) -> Box<Element> {
+        Box::new(
+            Element {
+                tag: Some(tag),
+                children: None,
+                attributes: None,
+            }
+        )
+    }
+}
+
+impl Html for Element {
+    fn tag(&self) -> &Option<String> {
+        &self.tag
+    }
+
+    fn children(&self) -> &Option<Vec<Box<dyn Html>>> {
+        &self.children
+    }
+
+    fn attributes(&self) -> &Option<Attributes> {
+        &self.attributes
+    }
+
+    fn add_attribute(&mut self, attribute: Attribute) {
+        if let Some(ref mut attributes) = self.attributes {
+            attributes.push(attribute);
+        } else {
+            self.attributes = Some(
+                vec![attribute]
+            );
+        }
+    }
+
+    fn add_child(&mut self, child: Box<dyn Html>) {
+        if let Some(ref mut children) = self.children {
+            children.push(child);
+        } else {
+            self.children = Some(
+                vec![
+                    child
+                ]
+            );
+        }
+    }  
 }

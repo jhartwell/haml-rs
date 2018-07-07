@@ -1,5 +1,4 @@
-use ast::div::Div;
-use ast::Html;
+use ast::{Comment, Element, Html, Text};
 use values::{TokenValue};
 use std::slice::Iter;
 
@@ -12,7 +11,7 @@ impl<'a> Iterator for Parser<'a> {
     type Item = Box<dyn Html>;
 
     fn next(&mut self) -> Option<Box<dyn Html>> {
-        Some(Div::boxed())
+        Some(Element::boxed("stuff".to_string()))
     }
 }
 
