@@ -1,7 +1,7 @@
 use std::str::Chars;
 use values::{Token, TokenValue};
 
-struct Tokenizer<'a> {
+pub struct Tokenizer<'a> {
     haml: &'a str,
     chars: Chars<'a>,
     tokens: Vec<TokenValue>,
@@ -18,6 +18,17 @@ impl<'a> Tokenizer<'a> {
             current_line: 1,
             current_position: 0,
         }
+    }
+
+    pub fn get_tokens(&mut self) -> &Vec<TokenValue> {
+        loop {
+            if let Some(token) = self.next() {
+                self.tokens.push(token);
+            } else {
+                break;
+            }
+        }
+        &self.tokens
     }
 }
 
