@@ -1,4 +1,6 @@
 pub type Attributes = Vec<Attribute>;
+use std::fmt;
+use std::slice;
 
 #[derive(Debug, PartialEq)]
 pub struct Attribute {
@@ -12,7 +14,7 @@ impl Attribute {
     }
 }
 
-pub trait Html {
+pub trait Html: fmt::Display {
     fn tag(&self) -> &Option<String>;
     fn children(&self) -> &Option<Vec<Box<dyn Html>>>;
     fn attributes(&self) -> &Option<Attributes>;
@@ -47,6 +49,12 @@ pub struct Text {
     text: String,
 }
 
+impl fmt::Display for Text {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.text)
+    }
+}
+
 impl Html for Text {
     fn tag(&self) -> &Option<String> {
         &None
@@ -79,10 +87,16 @@ impl Text {
     }
 }
 
+#[derive(Debug)]
 pub struct Comment {
     text: String,
 }
 
+impl fmt::Display for Comment {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.text)
+    }
+}
 impl Comment {
     pub fn new(text: String) -> Comment {
         Comment { text }
@@ -99,7 +113,7 @@ impl Html for Comment {
     }
 
     fn to_html(&self) -> String {
-        self.text.clone()
+        format!("<!-- {} -->\n", self.text)
     }
 
     fn children(&self) -> &Option<Vec<Box<dyn Html>>> {
@@ -140,6 +154,12 @@ impl Element {
             children: None,
             attributes: None,
         })
+    }
+}
+
+impl fmt::Display for Element {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.to_html())
     }
 }
 

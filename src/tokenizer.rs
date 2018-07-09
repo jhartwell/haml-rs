@@ -4,9 +4,11 @@ use values::{Token, TokenValue};
 pub struct Tokenizer<'a> {
     haml: &'a str,
     chars: Chars<'a>,
+    current_char: Option<char>,
     tokens: Vec<TokenValue>,
     current_line: u32,
     current_position: u32,
+    is_quoted: bool,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -17,12 +19,14 @@ impl<'a> Tokenizer<'a> {
             tokens: Vec::new(),
             current_line: 1,
             current_position: 0,
+            is_quoted: false,
+            current_char: None,
         }
     }
 
     pub fn get_tokens(&mut self) -> &Vec<TokenValue> {
         loop {
-            if let Some(token) = self.next() {
+            if let Some(mut token) = self.next() {
                 self.tokens.push(token);
             } else {
                 break;
@@ -36,71 +40,170 @@ impl<'a> Iterator for Tokenizer<'a> {
     type Item = TokenValue;
 
     fn next(&mut self) -> Option<TokenValue> {
-        if let Some(ch) = self.chars.next() {
-            self.current_position += 1;
-            match ch {
-                '\\' => Some(TokenValue::new(
-                    Token::Backslash(),
-                    self.current_line,
+        let current_char;
+        if let Some(current) = self.current_char {
+            current_char = current;
+            self.current_char = None;
+        } else {
+            if let Some(ch) = self.chars.next() {
+                current_char = ch;
+                self.current_position += 1;
+            } else {
+                return None;
+            }
+        }
+        let return_value = match current_char {
+            '\n' => {
+                let current_line = self.current_line;
+                self.current_line = current_line + 1;
+                Some(TokenValue::new(
+                    Token::EndLine(),
+                    current_line,
                     self.current_position,
-                )),
-                '.' => Some(TokenValue::new(
-                    Token::Period(),
-                    self.current_line,
-                    self.current_position,
-                )),
-                '=' => Some(TokenValue::new(
-                    Token::Equal(),
-                    self.current_line,
-                    self.current_position,
-                )),
-                '"' => Some(TokenValue::new(
-                    Token::DoubleQuote(),
-                    self.current_line,
-                    self.current_position,
-                )),
-                '(' => Some(TokenValue::new(
-                    Token::OpenParen(),
-                    self.current_line,
-                    self.current_position,
-                )),
-                ')' => Some(TokenValue::new(
-                    Token::CloseParen(),
-                    self.current_line,
-                    self.current_position,
-                )),
-                ' ' => Some(TokenValue::new(
-                    Token::Whitespace(),
-                    self.current_line,
-                    self.current_position,
-                )),
-                '\n' => {
-                    self.current_line += 1;
+                ))
+            }
+            '(' => Some(TokenValue::new(
+                Token::OpenParen(),
+                self.current_line,
+                self.current_position,
+            )),
+            ')' => Some(TokenValue::new(
+                Token::CloseParen(),
+                self.current_line,
+                self.current_position,
+            )),
+            '"' => {
+                if self.is_quoted == false {
+                    let mut text_builder = String::new();
+                    if let Some(c) = self.chars.next() {
+                        text_builder.push(c);
+
+                        loop {
+                            if let Some(next_char) = self.chars.next() {
+                                if self.is_quoted {
+                                    // This is quoted which means as long as we don't get another double quote we are
+                                    // to take every character and append as text
+                                    if next_char != '"' {
+                                        text_builder.push(next_char);
+                                        self.current_position += 1;
+                                        if next_char == '\n' {
+                                            self.current_line += 1;
+                                            self.current_position = 0;
+                                        }
+                                    } else {
+                                        self.is_quoted = false;
+                                        self.current_char = Some(next_char);
+                                        // We found the end of the text
+                                        break;
+                                    }
+                                } else {
+                                    if Token::is_delim(&next_char) {
+                                        self.current_char = Some(next_char);
+                                        break;
+                                    } else {
+                                        text_builder.push(next_char);
+                                    }
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                        Some(TokenValue::new(
+                            Token::Text(text_builder),
+                            self.current_line,
+                            self.current_position,
+                        ))
+                    } else {
+                        Some(TokenValue::new(
+                            Token::DoubleQuote(),
+                            self.current_line,
+                            self.current_position,
+                        ))
+                    }
+                } else {
                     Some(TokenValue::new(
-                        Token::EndLine(),
-                        self.current_line - 1,
+                        Token::DoubleQuote(),
+                        self.current_line,
                         self.current_position,
                     ))
                 }
-                '@' => Some(TokenValue::new(
-                    Token::AtSymbol(),
-                    self.current_line,
-                    self.current_position,
-                )),
-                '%' => Some(TokenValue::new(
-                    Token::PercentSign(),
-                    self.current_line,
-                    self.current_position,
-                )),
-                c => Some(TokenValue::new(
-                    Token::Char(c),
-                    self.current_line,
-                    self.current_position,
-                )),
             }
-        } else {
-            None
-        }
+            '=' => Some(TokenValue::new(
+                Token::Equal(),
+                self.current_line,
+                self.current_position,
+            )),
+            '\\' => Some(TokenValue::new(
+                Token::Backslash(),
+                self.current_line,
+                self.current_position,
+            )),
+            '%' => Some(TokenValue::new(
+                Token::PercentSign(),
+                self.current_line,
+                self.current_position,
+            )),
+            '.' => Some(TokenValue::new(
+                Token::Period(),
+                self.current_line,
+                self.current_position,
+            )),
+            ' ' => Some(TokenValue::new(
+                Token::Whitespace(),
+                self.current_line,
+                self.current_position,
+            )),
+            '@' => Some(TokenValue::new(
+                Token::AtSymbol(),
+                self.current_line,
+                self.current_position,
+            )),
+            '#' => Some(TokenValue::new(
+                Token::Hashtag(),
+                self.current_line,
+                self.current_position,
+            )),
+            c => {
+                let mut text_builder = String::new();
+                text_builder.push(c);
+                loop {
+                    if let Some(next_char) = self.chars.next() {
+                        if self.is_quoted {
+                            // This is quoted which means as long as we don't get another double quote we are
+                            // to take every character and append as text
+                            if next_char != '"' {
+                                text_builder.push(next_char);
+                                self.current_position += 1;
+                                if next_char == '\n' {
+                                    self.current_line += 1;
+                                    self.current_position = 0;
+                                }
+                            } else {
+                                self.is_quoted = false;
+                                self.current_char = Some(next_char);
+                                // We found the end of the text
+                                break;
+                            }
+                        } else {
+                            if Token::is_delim(&next_char) {
+                                self.current_char = Some(next_char);
+                                break;
+                            } else {
+                                text_builder.push(next_char);
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                Some(TokenValue::new(
+                    Token::Text(text_builder),
+                    self.current_line,
+                    self.current_position,
+                ))
+            }
+        };
+        return_value
     }
 }
 
@@ -147,13 +250,23 @@ mod test {
     }
 
     #[test]
-    fn test_char() {
-        test_helper("a", &Token::Char('a'), 1, 1);
+    fn test_basic_text() {
+        test_helper("a", &Token::Text("a".to_string()), 1, 1);
+    }
+
+    #[test]
+    fn test_quoted_text() {
+        test_helper("\"a\"", &Token::Text("a".to_string()), 1, 1);
     }
 
     #[test]
     fn test_backslash() {
         test_helper("\\", &Token::Backslash(), 1, 1);
+    }
+
+    #[test]
+    fn test_hashtag() {
+        test_helper("#", &Token::Hashtag(), 1, 1);
     }
 
     #[test]
@@ -174,10 +287,30 @@ mod test {
         if let Some(second_token) = actual_second_token {
             assert_eq!(1, second_token.get_line_number());
             assert_eq!(2, second_token.get_position());
-            assert_eq!(&Token::Char('a'), second_token.get_token());
+            assert_eq!(&Token::Text("a".to_string()), second_token.get_token());
         } else {
             panic!("Expected at least two tokens but found only one");
         }
+    }
+
+    #[test]
+    fn test_element() {
+        let haml = "%span";
+        let mut tokenizer = Tokenizer::new(haml);
+        let actual_first_token = tokenizer.next();
+        let actual_second_token = tokenizer.next();
+
+        if let Some(first_token) = actual_first_token {
+            assert_eq!(1, first_token.get_line_number());
+            assert_eq!(1, first_token.get_position());
+            assert_eq!(&Token::PercentSign(), first_token.get_token());
+        } else {
+            panic!("Expecting at least two tokens but found none");
+        }
+
+        // TODO add second part of test
+
+
     }
 
     fn test_helper(
