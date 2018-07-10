@@ -1,6 +1,6 @@
-pub type Attributes = Vec<Attribute>;
 use std::fmt;
 use std::slice;
+use std::marker::PhantomData;
 
 #[derive(Debug, PartialEq)]
 pub struct Attribute {
@@ -14,10 +14,10 @@ impl Attribute {
     }
 }
 
-pub trait Html: fmt::Display {
+pub trait Html: fmt::Display + fmt::Debug {
     fn tag(&self) -> &Option<String>;
-    fn children(&self) -> &Option<Vec<Box<dyn Html>>>;
-    fn attributes(&self) -> &Option<Attributes>;
+    fn children(&self) -> &Vec<Box<dyn Html>>;
+    fn attributes(&self) -> &Vec<Attribute>;
 
     fn add_child(&mut self, child: Box<dyn Html>);
     fn add_attribute(&mut self, attribute: Attribute);
@@ -27,26 +27,27 @@ pub trait Html: fmt::Display {
         if let Some(tag) = self.tag() {
             html_builder.push_str(&format!("<{}", tag));
 
-            if let Some(ref attributes) = self.attributes() {
-                for attr in attributes {
-                    html_builder.push_str(&format!(" {}=\"{}\"", attr.key, attr.value));
-                }
+            for attr in self.attributes() {
+                html_builder.push_str(&format!(" {}=\"{}\"", attr.key, attr.value));
             }
+
             html_builder.push('>');
 
-            if let Some(ref children) = self.children() {
-                for child in children {
-                    html_builder.push_str(&child.to_html());
-                }
+            for child in self.children() {
+                html_builder.push_str(&child.to_html());
             }
+
             html_builder.push_str(&format!("</{}>", tag));
         }
         html_builder
     }
 }
 
+#[derive(Debug)]
 pub struct Text {
     text: String,
+    children: Vec<Box<dyn Html>>,
+    attributes: Vec<Attribute>,
 }
 
 impl fmt::Display for Text {
@@ -64,12 +65,12 @@ impl Html for Text {
         self.text.clone()
     }
 
-    fn children(&self) -> &Option<Vec<Box<dyn Html>>> {
-        &None
+    fn children(&self) -> &Vec<Box<dyn Html>> {
+        &self.children
     }
 
-    fn attributes(&self) -> &Option<Attributes> {
-        &None
+    fn attributes(&self) -> &Vec<Attribute> {
+        &self.attributes
     }
 
     fn add_attribute(&mut self, attribute: Attribute) {
@@ -83,13 +84,25 @@ impl Html for Text {
 
 impl Text {
     pub fn new(text: String) -> Text {
-        Text { text }
+        Text { text, children: vec![], attributes: vec![] }
+    }
+
+    pub fn boxed(text: String) -> Box<Text> {
+        Box::new(
+            Text {
+                text,
+                children: vec![],
+                attributes: vec![],
+            }
+        )
     }
 }
 
 #[derive(Debug)]
 pub struct Comment {
     text: String,
+    attributes: Vec<Attribute>,
+    children: Vec<Box<dyn Html>>,
 }
 
 impl fmt::Display for Comment {
@@ -97,13 +110,14 @@ impl fmt::Display for Comment {
         write!(f, "{}", self.text)
     }
 }
+
 impl Comment {
     pub fn new(text: String) -> Comment {
-        Comment { text }
+        Comment { text, children: vec![], attributes: vec![]  }
     }
 
     pub fn boxed(text: String) -> Box<Comment> {
-        Box::new(Comment { text })
+        Box::new(Comment { text, children: vec![], attributes: vec![]  })
     }
 }
 
@@ -116,12 +130,12 @@ impl Html for Comment {
         format!("<!-- {} -->\n", self.text)
     }
 
-    fn children(&self) -> &Option<Vec<Box<dyn Html>>> {
-        &None
+    fn children(&self) -> &Vec<Box<dyn Html>> {
+        &self.children
     }
 
-    fn attributes(&self) -> &Option<Attributes> {
-        &None
+    fn attributes(&self) -> &Vec<Attribute> {
+        &self.attributes
     }
 
     fn add_attribute(&mut self, attribute: Attribute) {
@@ -133,26 +147,27 @@ impl Html for Comment {
     }
 }
 
+#[derive(Debug)]
 pub struct Element {
     tag: Option<String>,
-    children: Option<Vec<Box<dyn Html>>>,
-    attributes: Option<Attributes>,
+    children: Vec<Box<dyn Html>>,
+    attributes: Vec<Attribute>,
 }
 
 impl Element {
     pub fn new(tag: String) -> Element {
         Element {
             tag: Some(tag),
-            children: None,
-            attributes: None,
+            children: vec![],
+            attributes: vec![],
         }
     }
 
     pub fn boxed(tag: String) -> Box<Element> {
         Box::new(Element {
             tag: Some(tag),
-            children: None,
-            attributes: None,
+            children: vec![],
+            attributes: vec![],
         })
     }
 }
@@ -168,27 +183,19 @@ impl Html for Element {
         &self.tag
     }
 
-    fn children(&self) -> &Option<Vec<Box<dyn Html>>> {
+    fn children(&self) -> &Vec<Box<dyn Html>> {
         &self.children
     }
 
-    fn attributes(&self) -> &Option<Attributes> {
+    fn attributes(&self) -> &Vec<Attribute> {
         &self.attributes
     }
 
     fn add_attribute(&mut self, attribute: Attribute) {
-        if let Some(ref mut attributes) = self.attributes {
-            attributes.push(attribute);
-        } else {
-            self.attributes = Some(vec![attribute]);
-        }
+        self.attributes.push(attribute);
     }
 
     fn add_child(&mut self, child: Box<dyn Html>) {
-        if let Some(ref mut children) = self.children {
-            children.push(child);
-        } else {
-            self.children = Some(vec![child]);
-        }
+        self.children.push(child);
     }
 }

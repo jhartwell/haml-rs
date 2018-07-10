@@ -1,11 +1,11 @@
 use ast::{Attributes, Comment, Element, Html, Text};
 use std::slice::Iter;
-use values::{Token, TokenValue};
+use values::{Token};
 
 pub struct Parser<'a> {
-    tokens: &'a Vec<TokenValue>,
-    iter: Iter<'a, TokenValue>,
-    current_value: Option<&'a TokenValue>,
+    tokens: &'a Vec<Token>,
+    iter: Iter<'a, Token>,
+    current_value: Option<&'a Token>,
     previous_token: &'a Token,
     indentation: u32,
     is_quoted: bool,

@@ -1,13 +1,11 @@
 use std::str::Chars;
-use values::{Token, TokenValue};
+use values::Token;
 
 pub struct Tokenizer<'a> {
     haml: &'a str,
     chars: Chars<'a>,
     current_char: Option<char>,
-    tokens: Vec<TokenValue>,
-    current_line: u32,
-    current_position: u32,
+    tokens: Vec<Token>,
     is_quoted: bool,
 }
 
@@ -17,14 +15,12 @@ impl<'a> Tokenizer<'a> {
             haml: &raw_haml,
             chars: raw_haml.chars(),
             tokens: Vec::new(),
-            current_line: 1,
-            current_position: 0,
             is_quoted: false,
             current_char: None,
         }
     }
 
-    pub fn get_tokens(&mut self) -> &Vec<TokenValue> {
+    pub fn get_tokens(&mut self) -> &Vec<Token> {
         loop {
             if let Some(mut token) = self.next() {
                 self.tokens.push(token);
@@ -37,9 +33,9 @@ impl<'a> Tokenizer<'a> {
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
-    type Item = TokenValue;
+    type Item = Token;
 
-    fn next(&mut self) -> Option<TokenValue> {
+    fn next(&mut self) -> Option<Token> {
         let current_char;
         if let Some(current) = self.current_char {
             current_char = current;
@@ -47,37 +43,22 @@ impl<'a> Iterator for Tokenizer<'a> {
         } else {
             if let Some(ch) = self.chars.next() {
                 current_char = ch;
-                self.current_position += 1;
             } else {
                 return None;
             }
         }
         let return_value = match current_char {
-            '\n' => {
-                let current_line = self.current_line;
-                self.current_line = current_line + 1;
-                Some(TokenValue::new(
-                    Token::EndLine(),
-                    current_line,
-                    self.current_position,
-                ))
-            }
-            '(' => Some(TokenValue::new(
-                Token::OpenParen(),
-                self.current_line,
-                self.current_position,
-            )),
-            ')' => Some(TokenValue::new(
-                Token::CloseParen(),
-                self.current_line,
-                self.current_position,
-            )),
+            '\n' => 
+                Some(Token::EndLine()),
+                
+            
+            '(' => Some(Token::OpenParen()),
+            ')' => Some(Token::CloseParen()),
             '"' => {
-                if self.is_quoted == false {
+                if self.is_quoted == false  {
                     let mut text_builder = String::new();
                     if let Some(c) = self.chars.next() {
                         text_builder.push(c);
-
                         loop {
                             if let Some(next_char) = self.chars.next() {
                                 if self.is_quoted {
@@ -85,20 +66,18 @@ impl<'a> Iterator for Tokenizer<'a> {
                                     // to take every character and append as text
                                     if next_char != '"' {
                                         text_builder.push(next_char);
-                                        self.current_position += 1;
-                                        if next_char == '\n' {
-                                            self.current_line += 1;
-                                            self.current_position = 0;
-                                        }
                                     } else {
-                                        self.is_quoted = false;
                                         self.current_char = Some(next_char);
                                         // We found the end of the text
                                         break;
                                     }
                                 } else {
                                     if Token::is_delim(&next_char) {
-                                        self.current_char = Some(next_char);
+                                        self.current_char = if next_char != '"' {
+                                            Some(next_char) 
+                                        } else {
+                                            None
+                                        };
                                         break;
                                     } else {
                                         text_builder.push(next_char);
@@ -108,61 +87,22 @@ impl<'a> Iterator for Tokenizer<'a> {
                                 break;
                             }
                         }
-                        Some(TokenValue::new(
-                            Token::Text(text_builder),
-                            self.current_line,
-                            self.current_position,
-                        ))
+                        Some(Token::Text(text_builder))
                     } else {
-                        Some(TokenValue::new(
-                            Token::DoubleQuote(),
-                            self.current_line,
-                            self.current_position,
-                        ))
+                        Some(Token::DoubleQuote())
                     }
                 } else {
-                    Some(TokenValue::new(
-                        Token::DoubleQuote(),
-                        self.current_line,
-                        self.current_position,
-                    ))
+                    self.is_quoted = true;
+                    Some(Token::DoubleQuote())
                 }
             }
-            '=' => Some(TokenValue::new(
-                Token::Equal(),
-                self.current_line,
-                self.current_position,
-            )),
-            '\\' => Some(TokenValue::new(
-                Token::Backslash(),
-                self.current_line,
-                self.current_position,
-            )),
-            '%' => Some(TokenValue::new(
-                Token::PercentSign(),
-                self.current_line,
-                self.current_position,
-            )),
-            '.' => Some(TokenValue::new(
-                Token::Period(),
-                self.current_line,
-                self.current_position,
-            )),
-            ' ' => Some(TokenValue::new(
-                Token::Whitespace(),
-                self.current_line,
-                self.current_position,
-            )),
-            '@' => Some(TokenValue::new(
-                Token::AtSymbol(),
-                self.current_line,
-                self.current_position,
-            )),
-            '#' => Some(TokenValue::new(
-                Token::Hashtag(),
-                self.current_line,
-                self.current_position,
-            )),
+            '=' => Some(Token::Equal()),
+            '\\' => Some(Token::Backslash()),
+            '%' => Some(Token::PercentSign()),
+            '.' => Some(Token::Period()),
+            ' ' => Some(Token::Whitespace()),
+            '@' => Some(Token::AtSymbol()),
+            '#' => Some(Token::Hashtag()),
             c => {
                 let mut text_builder = String::new();
                 text_builder.push(c);
@@ -173,11 +113,6 @@ impl<'a> Iterator for Tokenizer<'a> {
                             // to take every character and append as text
                             if next_char != '"' {
                                 text_builder.push(next_char);
-                                self.current_position += 1;
-                                if next_char == '\n' {
-                                    self.current_line += 1;
-                                    self.current_position = 0;
-                                }
                             } else {
                                 self.is_quoted = false;
                                 self.current_char = Some(next_char);
@@ -196,11 +131,9 @@ impl<'a> Iterator for Tokenizer<'a> {
                         break;
                     }
                 }
-                Some(TokenValue::new(
-                    Token::Text(text_builder),
-                    self.current_line,
-                    self.current_position,
-                ))
+                Some(
+                    Token::Text(text_builder))
+                    
             }
         };
         return_value
@@ -214,120 +147,145 @@ mod test {
 
     #[test]
     fn test_at_symbol() {
-        test_helper("@", &Token::AtSymbol(), 1, 1);
+        let haml = "@";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::AtSymbol()), tokenizer.next());
     }
 
     #[test]
     fn test_period() {
-        test_helper(".", &Token::Period(), 1, 1);
+        let haml = ".";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::Period()), tokenizer.next());
     }
 
     #[test]
     fn test_equal() {
-        test_helper("=", &Token::Equal(), 1, 1);
+        let haml = "=";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::Equal()), tokenizer.next());
     }
 
     #[test]
     fn test_open_paren() {
-        test_helper("(", &Token::OpenParen(), 1, 1);
+        let haml = "(";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::OpenParen()), tokenizer.next());
     }
 
     #[test]
     fn test_close_paren() {
-        test_helper(")", &Token::CloseParen(), 1, 1);
+        let haml = ")";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::CloseParen()), tokenizer.next());
     }
     #[test]
     fn test_whitespace() {
-        test_helper(" ", &Token::Whitespace(), 1, 1);
+        let haml = " ";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::Whitespace()), tokenizer.next());
     }
     #[test]
     fn test_endline() {
-        test_helper("\n", &Token::EndLine(), 1, 1);
+        let haml = "\n";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::EndLine()), tokenizer.next());
     }
     #[test]
     fn test_percent_sign() {
-        test_helper("%", &Token::PercentSign(), 1, 1);
+        let haml = "%";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
     }
 
     #[test]
     fn test_basic_text() {
-        test_helper("a", &Token::Text("a".to_string()), 1, 1);
+        let haml = "a";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::Text("a".to_string())), tokenizer.next());
     }
 
     #[test]
     fn test_quoted_text() {
-        test_helper("\"a\"", &Token::Text("a".to_string()), 1, 1);
+        let haml = "\"a\"";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::Text("a".to_string())), tokenizer.next());
     }
 
     #[test]
     fn test_backslash() {
-        test_helper("\\", &Token::Backslash(), 1, 1);
+        let haml = "\\";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::Backslash()), tokenizer.next());
     }
 
     #[test]
     fn test_hashtag() {
-        test_helper("#", &Token::Hashtag(), 1, 1);
+        let haml = "#";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::Hashtag()), tokenizer.next());
     }
 
     #[test]
     fn test_multiple() {
         let haml = "%a";
         let mut tokenizer = Tokenizer::new(haml);
-        let actual_first_token = tokenizer.next();
-        let actual_second_token = tokenizer.next();
+        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
+        assert_eq!(Some(Token::Text("a".to_string())), tokenizer.next());
+    }
 
-        if let Some(first_token) = actual_first_token {
-            assert_eq!(1, first_token.get_line_number());
-            assert_eq!(1, first_token.get_position());
-            assert_eq!(&Token::PercentSign(), first_token.get_token());
-        } else {
-            panic!("Expected at least one token but found none.");
-        }
-
-        if let Some(second_token) = actual_second_token {
-            assert_eq!(1, second_token.get_line_number());
-            assert_eq!(2, second_token.get_position());
-            assert_eq!(&Token::Text("a".to_string()), second_token.get_token());
-        } else {
-            panic!("Expected at least two tokens but found only one");
-        }
+    #[test]
+    fn test_quoted_double_quote() {
+        let haml = "\"\"\"";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::Text("\"".to_string())), tokenizer.next());
     }
 
     #[test]
     fn test_element() {
         let haml = "%span";
         let mut tokenizer = Tokenizer::new(haml);
-        let actual_first_token = tokenizer.next();
-        let actual_second_token = tokenizer.next();
-
-        if let Some(first_token) = actual_first_token {
-            assert_eq!(1, first_token.get_line_number());
-            assert_eq!(1, first_token.get_position());
-            assert_eq!(&Token::PercentSign(), first_token.get_token());
-        } else {
-            panic!("Expecting at least two tokens but found none");
-        }
-
-        // TODO add second part of test
-
-
+        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
+        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());
     }
 
-    fn test_helper(
-        haml: &str,
-        expected_token: &Token,
-        expected_line_number: u32,
-        expected_position: u32,
-    ) {
+    #[test]
+    fn test_element_with_attributes() {
+        let haml = "%span(id=\"test\")";
         let mut tokenizer = Tokenizer::new(haml);
-        let token_value = tokenizer.next();
-        match token_value {
-            Some(tv) => {
-                assert_eq!(expected_line_number, tv.get_line_number());
-                assert_eq!(expected_position, tv.get_position());
-                assert_eq!(expected_token, tv.get_token());
-            }
-            None => panic!("Expecting a token value but found none."),
-        }
+        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
+        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());
+        assert_eq!(Some(Token::OpenParen()), tokenizer.next());
+        assert_eq!(Some(Token::Text("id".to_string())), tokenizer.next());
+        assert_eq!(Some(Token::Equal()), tokenizer.next());
+        assert_eq!(Some(Token::Text("test".to_string())), tokenizer.next());
+        assert_eq!(Some(Token::CloseParen()), tokenizer.next());
+    }
+
+    #[test]
+    fn test_element_with_multiple_attributes() {
+        let haml = "%span(id=\"test\" data=\"target\")";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
+        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());
+        assert_eq!(Some(Token::OpenParen()), tokenizer.next());
+        assert_eq!(Some(Token::Text("id".to_string())), tokenizer.next());
+        assert_eq!(Some(Token::Equal()), tokenizer.next());
+        assert_eq!(Some(Token::Text("test".to_string())), tokenizer.next());
+        assert_eq!(Some(Token::Whitespace()), tokenizer.next());
+        assert_eq!(Some(Token::Text("data".to_string())), tokenizer.next());
+        assert_eq!(Some(Token::Equal()), tokenizer.next());
+        assert_eq!(Some(Token::Text("target".to_string())), tokenizer.next());
+        assert_eq!(Some(Token::CloseParen()), tokenizer.next());   
+    }
+
+    #[test]
+    fn test_element_indentation() {
+        let haml = "  %span";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::Whitespace()), tokenizer.next());
+        assert_eq!(Some(Token::Whitespace()), tokenizer.next());
+        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
+        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());
     }
 }

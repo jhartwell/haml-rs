@@ -1,31 +1,3 @@
-#[derive(Debug, PartialEq)]
-pub struct TokenValue {
-    token: Token,
-    line_number: u32,
-    position: u32,
-}
-
-impl TokenValue {
-    pub fn new(token: Token, line_number: u32, position: u32) -> TokenValue {
-        TokenValue {
-            token,
-            line_number,
-            position,
-        }
-    }
-
-    pub fn get_token(&self) -> &Token {
-        &self.token
-    }
-
-    pub fn get_line_number(&self) -> u32 {
-        self.line_number
-    }
-
-    pub fn get_position(&self) -> u32 {
-        self.position
-    }
-}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
