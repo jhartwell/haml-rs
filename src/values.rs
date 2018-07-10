@@ -1,4 +1,3 @@
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Backslash(),
@@ -12,6 +11,7 @@ pub enum Token {
     PercentSign(),
     AtSymbol(),
     Hashtag(),
+    Indentation(),
     Text(String),
 }
 
@@ -30,6 +30,7 @@ impl ToString for Token {
             Token::Hashtag() => "#".to_string(),
             Token::Text(text) => text.to_string(),
             Token::EndLine() => "\n".to_string(),
+            Token::Indentation() => "  ".to_string(),
         }
     }
 }

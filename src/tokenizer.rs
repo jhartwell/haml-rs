@@ -7,6 +7,7 @@ pub struct Tokenizer<'a> {
     current_char: Option<char>,
     tokens: Vec<Token>,
     is_quoted: bool,
+    previous_token: Option<&'a Token>,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -17,6 +18,7 @@ impl<'a> Tokenizer<'a> {
             tokens: Vec::new(),
             is_quoted: false,
             current_char: None,
+            previous_token: None,
         }
     }
 
@@ -48,10 +50,10 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
         }
         let return_value = match current_char {
-            '\n' => 
-                Some(Token::EndLine()),
-                
-            
+            '\n' => { 
+                self.previous_token = Some(&Token::EndLine());
+                Some(Token::EndLine())
+            },
             '(' => Some(Token::OpenParen()),
             ')' => Some(Token::CloseParen()),
             '"' => {
@@ -100,7 +102,17 @@ impl<'a> Iterator for Tokenizer<'a> {
             '\\' => Some(Token::Backslash()),
             '%' => Some(Token::PercentSign()),
             '.' => Some(Token::Period()),
-            ' ' => Some(Token::Whitespace()),
+            ' ' => {
+                let mut return_value = Some(Token::Whitespace());
+                if Some(&Token::EndLine()) == self.previous_token {
+                    match self.chars.next() {
+                        Some(' ') => return_value = Some(Token::Indentation()),
+                        Some(c) => self.current_char = Some(c),
+                        None => (),
+                    }
+                }
+                return_value
+            }
             '@' => Some(Token::AtSymbol()),
             '#' => Some(Token::Hashtag()),
             c => {
@@ -281,11 +293,36 @@ mod test {
 
     #[test]
     fn test_element_indentation() {
-        let haml = "  %span";
+        let haml = "\n  %span";
         let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::Whitespace()), tokenizer.next());
-        assert_eq!(Some(Token::Whitespace()), tokenizer.next());
+        assert_eq!(Some(Token::EndLine()), tokenizer.next());
+        assert_eq!(Some(Token::Indentation()), tokenizer.next());
         assert_eq!(Some(Token::PercentSign()), tokenizer.next());
         assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());
     }
+
+    #[test]
+    fn test_element_multiple_indentation()
+    {
+        let haml = "\n    %span";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::EndLine()), tokenizer.next());
+        assert_eq!(Some(Token::Indentation()), tokenizer.next());
+        assert_eq!(Some(Token::Indentation()), tokenizer.next());
+        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
+        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());        
+    }
+
+    #[test]
+    fn test_single_indentation_with_space_later() {
+        let haml = "\n  %span(  id=\"test\")";
+        let mut tokenizer = Tokenizer::new(haml);
+        assert_eq!(Some(Token::EndLine()), tokenizer.next());
+        assert_eq!(Some(Token::Indentation()), tokenizer.next());
+        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
+        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());        
+        // fill rest of tokens
+        assert_eq!(Some(Token))
+    }
+
 }

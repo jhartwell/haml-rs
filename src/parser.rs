@@ -15,22 +15,8 @@ impl<'a> Iterator for Parser<'a> {
     type Item = Box<dyn Html>;
 
     fn next(&mut self) -> Option<Box<dyn Html>> {
-        self.current_value = self.iter.next();
-        if let Some(current_value) = self.current_value {
-            if current_value.get_position() == 1 {
-                let token = current_value.get_token();
-                if token == &Token::Backslash() {
-                    Some(self.parse_comment())
-                } else if token == &Token::PercentSign() {
-                    Some(self.parse_element())
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        } else {
-            None
+        if let Some(token) = self.iter.next() {
+            if self.previous_token
         }
     }
 }
