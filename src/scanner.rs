@@ -54,7 +54,7 @@ impl<'a> Iterator for Scanner<'a> {
             '(' => Some(Token::OpenParen()),
             ')' => Some(Token::CloseParen()),
             '"' => {
-                if self.is_quoted == false  {
+                if self.is_quoted == false {
                     let mut text_builder = String::new();
                     if let Some(c) = self.chars.next() {
                         text_builder.push(c);
@@ -73,7 +73,7 @@ impl<'a> Iterator for Scanner<'a> {
                                 } else {
                                     if Token::is_delim(&next_char) {
                                         self.current_char = if next_char != '"' {
-                                            Some(next_char) 
+                                            Some(next_char)
                                         } else {
                                             None
                                         };
@@ -101,11 +101,13 @@ impl<'a> Iterator for Scanner<'a> {
             '.' => Some(Token::Period()),
             ' ' => {
                 let mut return_value = Some(Token::Whitespace());
-                if Some(Token::EndLine()) == self.previous_token || Some(Token::Indentation()) == self.previous_token {
+                if Some(Token::EndLine()) == self.previous_token
+                    || Some(Token::Indentation()) == self.previous_token
+                {
                     match self.chars.next() {
                         Some(' ') => {
                             return_value = Some(Token::Indentation());
-                        },
+                        }
                         Some(c) => self.current_char = Some(c),
                         None => (),
                     }
@@ -142,9 +144,7 @@ impl<'a> Iterator for Scanner<'a> {
                         break;
                     }
                 }
-                Some(
-                    Token::Text(text_builder))
-                    
+                Some(Token::Text(text_builder))
             }
         };
         self.previous_token = return_value.clone();
@@ -288,7 +288,7 @@ mod test {
         assert_eq!(Some(Token::Text("data".to_string())), scanner.next());
         assert_eq!(Some(Token::Equal()), scanner.next());
         assert_eq!(Some(Token::Text("target".to_string())), scanner.next());
-        assert_eq!(Some(Token::CloseParen()), scanner.next());   
+        assert_eq!(Some(Token::CloseParen()), scanner.next());
     }
 
     #[test]
@@ -302,15 +302,14 @@ mod test {
     }
 
     #[test]
-    fn test_element_multiple_indentation()
-    {
+    fn test_element_multiple_indentation() {
         let haml = "\n    %span";
         let mut scanner = Scanner::new(haml);
         assert_eq!(Some(Token::EndLine()), scanner.next());
         assert_eq!(Some(Token::Indentation()), scanner.next());
         assert_eq!(Some(Token::Indentation()), scanner.next());
         assert_eq!(Some(Token::PercentSign()), scanner.next());
-        assert_eq!(Some(Token::Text("span".to_string())), scanner.next());        
+        assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
     }
 
     #[test]
@@ -321,7 +320,7 @@ mod test {
         assert_eq!(Some(Token::Indentation()), scanner.next());
         assert_eq!(Some(Token::PercentSign()), scanner.next());
         assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
-        assert_eq!(Some(Token::OpenParen()), scanner.next());    
+        assert_eq!(Some(Token::OpenParen()), scanner.next());
         assert_eq!(Some(Token::Whitespace()), scanner.next());
         assert_eq!(Some(Token::Whitespace()), scanner.next());
         assert_eq!(Some(Token::Text("id".to_string())), scanner.next());

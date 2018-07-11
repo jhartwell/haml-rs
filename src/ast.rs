@@ -1,6 +1,6 @@
 use std::fmt;
-use std::slice;
 use std::marker::PhantomData;
+use std::slice;
 
 #[derive(Debug, PartialEq)]
 pub struct Attribute {
@@ -11,6 +11,14 @@ pub struct Attribute {
 impl Attribute {
     pub fn new(key: String, value: String) -> Attribute {
         Attribute { key, value }
+    }
+
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+
+    pub fn key(&self) -> &str {
+        &self.key
     }
 }
 
@@ -84,17 +92,19 @@ impl Html for Text {
 
 impl Text {
     pub fn new(text: String) -> Text {
-        Text { text, children: vec![], attributes: vec![] }
+        Text {
+            text,
+            children: vec![],
+            attributes: vec![],
+        }
     }
 
     pub fn boxed(text: String) -> Box<Text> {
-        Box::new(
-            Text {
-                text,
-                children: vec![],
-                attributes: vec![],
-            }
-        )
+        Box::new(Text {
+            text,
+            children: vec![],
+            attributes: vec![],
+        })
     }
 }
 
@@ -113,11 +123,19 @@ impl fmt::Display for Comment {
 
 impl Comment {
     pub fn new(text: String) -> Comment {
-        Comment { text, children: vec![], attributes: vec![]  }
+        Comment {
+            text,
+            children: vec![],
+            attributes: vec![],
+        }
     }
 
     pub fn boxed(text: String) -> Box<Comment> {
-        Box::new(Comment { text, children: vec![], attributes: vec![]  })
+        Box::new(Comment {
+            text,
+            children: vec![],
+            attributes: vec![],
+        })
     }
 }
 
