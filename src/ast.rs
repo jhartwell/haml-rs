@@ -28,7 +28,9 @@ pub trait Html: fmt::Display + fmt::Debug {
     fn attributes(&self) -> &Vec<Attribute>;
 
     fn add_child(&mut self, child: Box<dyn Html>);
+    fn add_children(&mut self, children: Vec<Box<dyn Html>>);
     fn add_attribute(&mut self, attribute: Attribute);
+    fn add_attributes(&mut self, attributes: Vec<Attribute>);
 
     fn to_html(&self) -> String {
         let mut html_builder = String::new();
@@ -213,7 +215,15 @@ impl Html for Element {
         self.attributes.push(attribute);
     }
 
+    fn add_attributes(&mut self, attributes: Vec<Attribute>) {
+        self.attributes.append(attributes);
+    }
+
     fn add_child(&mut self, child: Box<dyn Html>) {
         self.children.push(child);
+    }
+
+    fn add_children(&mut self, children: Vec<Box<dyn Html>>) {
+        self.children.append(children);
     }
 }
