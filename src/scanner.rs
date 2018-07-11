@@ -1,18 +1,18 @@
 use std::str::Chars;
 use values::Token;
 
-pub struct Tokenizer<'a> {
+pub struct Scanner<'a> {
     haml: &'a str,
     chars: Chars<'a>,
     current_char: Option<char>,
     tokens: Vec<Token>,
     is_quoted: bool,
-    previous_token: Option<&'a Token>,
+    previous_token: Option<Token>,
 }
 
-impl<'a> Tokenizer<'a> {
-    pub fn new(raw_haml: &'a str) -> Tokenizer<'a> {
-        Tokenizer {
+impl<'a> Scanner<'a> {
+    pub fn new(raw_haml: &'a str) -> Scanner<'a> {
+        Scanner {
             haml: &raw_haml,
             chars: raw_haml.chars(),
             tokens: Vec::new(),
@@ -34,7 +34,7 @@ impl<'a> Tokenizer<'a> {
     }
 }
 
-impl<'a> Iterator for Tokenizer<'a> {
+impl<'a> Iterator for Scanner<'a> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
@@ -50,10 +50,7 @@ impl<'a> Iterator for Tokenizer<'a> {
             }
         }
         let return_value = match current_char {
-            '\n' => { 
-                self.previous_token = Some(&Token::EndLine());
-                Some(Token::EndLine())
-            },
+            '\n' => Some(Token::EndLine()),
             '(' => Some(Token::OpenParen()),
             ')' => Some(Token::CloseParen()),
             '"' => {
@@ -104,9 +101,11 @@ impl<'a> Iterator for Tokenizer<'a> {
             '.' => Some(Token::Period()),
             ' ' => {
                 let mut return_value = Some(Token::Whitespace());
-                if Some(&Token::EndLine()) == self.previous_token {
+                if Some(Token::EndLine()) == self.previous_token || Some(Token::Indentation()) == self.previous_token {
                     match self.chars.next() {
-                        Some(' ') => return_value = Some(Token::Indentation()),
+                        Some(' ') => {
+                            return_value = Some(Token::Indentation());
+                        },
                         Some(c) => self.current_char = Some(c),
                         None => (),
                     }
@@ -148,6 +147,7 @@ impl<'a> Iterator for Tokenizer<'a> {
                     
             }
         };
+        self.previous_token = return_value.clone();
         return_value
     }
 }
@@ -160,169 +160,200 @@ mod test {
     #[test]
     fn test_at_symbol() {
         let haml = "@";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::AtSymbol()), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::AtSymbol()), scanner.next());
     }
 
     #[test]
     fn test_period() {
         let haml = ".";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::Period()), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::Period()), scanner.next());
     }
 
     #[test]
     fn test_equal() {
         let haml = "=";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::Equal()), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::Equal()), scanner.next());
     }
 
     #[test]
     fn test_open_paren() {
         let haml = "(";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::OpenParen()), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::OpenParen()), scanner.next());
     }
 
     #[test]
     fn test_close_paren() {
         let haml = ")";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::CloseParen()), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::CloseParen()), scanner.next());
     }
     #[test]
     fn test_whitespace() {
         let haml = " ";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::Whitespace()), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
     }
     #[test]
     fn test_endline() {
         let haml = "\n";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::EndLine()), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::EndLine()), scanner.next());
     }
     #[test]
     fn test_percent_sign() {
         let haml = "%";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
     }
 
     #[test]
     fn test_basic_text() {
         let haml = "a";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::Text("a".to_string())), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::Text("a".to_string())), scanner.next());
     }
 
     #[test]
     fn test_quoted_text() {
         let haml = "\"a\"";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::Text("a".to_string())), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::Text("a".to_string())), scanner.next());
     }
 
     #[test]
     fn test_backslash() {
         let haml = "\\";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::Backslash()), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::Backslash()), scanner.next());
     }
 
     #[test]
     fn test_hashtag() {
         let haml = "#";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::Hashtag()), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::Hashtag()), scanner.next());
     }
 
     #[test]
     fn test_multiple() {
         let haml = "%a";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
-        assert_eq!(Some(Token::Text("a".to_string())), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
+        assert_eq!(Some(Token::Text("a".to_string())), scanner.next());
     }
 
     #[test]
     fn test_quoted_double_quote() {
         let haml = "\"\"\"";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::Text("\"".to_string())), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::Text("\"".to_string())), scanner.next());
     }
 
     #[test]
     fn test_element() {
         let haml = "%span";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
-        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
+        assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
     }
 
     #[test]
     fn test_element_with_attributes() {
         let haml = "%span(id=\"test\")";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
-        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());
-        assert_eq!(Some(Token::OpenParen()), tokenizer.next());
-        assert_eq!(Some(Token::Text("id".to_string())), tokenizer.next());
-        assert_eq!(Some(Token::Equal()), tokenizer.next());
-        assert_eq!(Some(Token::Text("test".to_string())), tokenizer.next());
-        assert_eq!(Some(Token::CloseParen()), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
+        assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
+        assert_eq!(Some(Token::OpenParen()), scanner.next());
+        assert_eq!(Some(Token::Text("id".to_string())), scanner.next());
+        assert_eq!(Some(Token::Equal()), scanner.next());
+        assert_eq!(Some(Token::Text("test".to_string())), scanner.next());
+        assert_eq!(Some(Token::CloseParen()), scanner.next());
     }
 
     #[test]
     fn test_element_with_multiple_attributes() {
         let haml = "%span(id=\"test\" data=\"target\")";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
-        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());
-        assert_eq!(Some(Token::OpenParen()), tokenizer.next());
-        assert_eq!(Some(Token::Text("id".to_string())), tokenizer.next());
-        assert_eq!(Some(Token::Equal()), tokenizer.next());
-        assert_eq!(Some(Token::Text("test".to_string())), tokenizer.next());
-        assert_eq!(Some(Token::Whitespace()), tokenizer.next());
-        assert_eq!(Some(Token::Text("data".to_string())), tokenizer.next());
-        assert_eq!(Some(Token::Equal()), tokenizer.next());
-        assert_eq!(Some(Token::Text("target".to_string())), tokenizer.next());
-        assert_eq!(Some(Token::CloseParen()), tokenizer.next());   
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
+        assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
+        assert_eq!(Some(Token::OpenParen()), scanner.next());
+        assert_eq!(Some(Token::Text("id".to_string())), scanner.next());
+        assert_eq!(Some(Token::Equal()), scanner.next());
+        assert_eq!(Some(Token::Text("test".to_string())), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Text("data".to_string())), scanner.next());
+        assert_eq!(Some(Token::Equal()), scanner.next());
+        assert_eq!(Some(Token::Text("target".to_string())), scanner.next());
+        assert_eq!(Some(Token::CloseParen()), scanner.next());   
     }
 
     #[test]
     fn test_element_indentation() {
         let haml = "\n  %span";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::EndLine()), tokenizer.next());
-        assert_eq!(Some(Token::Indentation()), tokenizer.next());
-        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
-        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::EndLine()), scanner.next());
+        assert_eq!(Some(Token::Indentation()), scanner.next());
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
+        assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
     }
 
     #[test]
     fn test_element_multiple_indentation()
     {
         let haml = "\n    %span";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::EndLine()), tokenizer.next());
-        assert_eq!(Some(Token::Indentation()), tokenizer.next());
-        assert_eq!(Some(Token::Indentation()), tokenizer.next());
-        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
-        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());        
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::EndLine()), scanner.next());
+        assert_eq!(Some(Token::Indentation()), scanner.next());
+        assert_eq!(Some(Token::Indentation()), scanner.next());
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
+        assert_eq!(Some(Token::Text("span".to_string())), scanner.next());        
     }
 
     #[test]
     fn test_single_indentation_with_space_later() {
         let haml = "\n  %span(  id=\"test\")";
-        let mut tokenizer = Tokenizer::new(haml);
-        assert_eq!(Some(Token::EndLine()), tokenizer.next());
-        assert_eq!(Some(Token::Indentation()), tokenizer.next());
-        assert_eq!(Some(Token::PercentSign()), tokenizer.next());
-        assert_eq!(Some(Token::Text("span".to_string())), tokenizer.next());        
-        // fill rest of tokens
-        assert_eq!(Some(Token))
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::EndLine()), scanner.next());
+        assert_eq!(Some(Token::Indentation()), scanner.next());
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
+        assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
+        assert_eq!(Some(Token::OpenParen()), scanner.next());    
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Text("id".to_string())), scanner.next());
+        assert_eq!(Some(Token::Equal()), scanner.next());
+        assert_eq!(Some(Token::Text("test".to_string())), scanner.next());
+        assert_eq!(Some(Token::CloseParen()), scanner.next());
+        assert_eq!(None, scanner.next());
+    }
+
+    #[test]
+    fn test_multiple_lines() {
+        let haml = "%span\n%div";
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
+        assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
+        assert_eq!(Some(Token::EndLine()), scanner.next());
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
+        assert_eq!(Some(Token::Text("div".to_string())), scanner.next());
+        assert_eq!(None, scanner.next());
+    }
+
+    #[test]
+    fn test_multiple_lines_with_indentation() {
+        let haml = "%span\n  %div";
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
+        assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
+        assert_eq!(Some(Token::EndLine()), scanner.next());
+        assert_eq!(Some(Token::Indentation()), scanner.next());
+        assert_eq!(Some(Token::PercentSign()), scanner.next());
+        assert_eq!(Some(Token::Text("div".to_string())), scanner.next());
+        assert_eq!(None, scanner.next());
     }
 
 }

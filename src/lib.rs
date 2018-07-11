@@ -1,7 +1,7 @@
 mod ast;
 mod generator;
-// mod parser;
-mod tokenizer;
+mod parser;
+mod scanner;
 mod values;
 
 // use generator::Generator;
