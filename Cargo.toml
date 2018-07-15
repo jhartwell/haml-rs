@@ -3,7 +3,10 @@ name = "hamlrs"
 version = "0.0.1"
 authors = ["Jon Hartwell <jon@dontbreakthebuild.com>"]
 license = "MIT"
-description = "A Rust library and CLI application for parsing [Haml](http://haml.info)"
+description = "A Rust library and CLI application for parsing [Haml](http://haml.info) template"
+homepage = "http://www.haml.rs"
+respository = "https://github.com/jhartwell/haml-rs"
+keywords = ["haml", "templating", "template"]
 
 [lib]
 name = "haml"
