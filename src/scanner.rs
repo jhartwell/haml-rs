@@ -24,7 +24,7 @@ impl<'a> Scanner<'a> {
 
     pub fn get_tokens(&mut self) -> &Vec<Token> {
         loop {
-            if let Some(mut token) = self.next() {
+            if let Some(token) = self.next() {
                 self.tokens.push(token);
             } else {
                 break;

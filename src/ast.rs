@@ -22,7 +22,7 @@ impl Attribute {
     }
 }
 
-pub trait Html: fmt::Display + fmt::Debug {
+pub trait Html : fmt::Display + fmt::Debug {
     fn tag(&self) -> &Option<String>;
     fn children(&self) -> &Vec<Box<dyn Html>>;
     fn attributes(&self) -> &Vec<Attribute>;
@@ -60,7 +60,7 @@ pub struct Text {
     attributes: Vec<Attribute>,
 }
 
-impl fmt::Display for Text {
+impl<'a> fmt::Display for Text {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.text)
     }
@@ -88,6 +88,14 @@ impl Html for Text {
     }
 
     fn add_child(&mut self, child: Box<dyn Html>) {
+        // do nothing as text does not allow children
+    }
+
+    fn add_attributes(&mut self, attributes: Vec<Attribute>) {
+        // do nothing as text does not allow attributes
+    }
+
+    fn add_children(&mut self, children: Vec<Box<dyn Html>>) {
         // do nothing as text does not allow children
     }
 }
@@ -159,11 +167,19 @@ impl Html for Comment {
     }
 
     fn add_attribute(&mut self, attribute: Attribute) {
-        // do nothing as text does not allow attributes
+        // do nothing as comment does not allow attributes
+    }
+
+    fn add_attributes(&mut self, attributes: Vec<Attribute>) {
+        // do nothing as comment does not allow attributes
     }
 
     fn add_child(&mut self, child: Box<dyn Html>) {
-        // do nothing as text does not allow children
+        // do nothing as comment does not allow children
+    }
+
+    fn add_children(&mut self, children: Vec<Box<dyn Html>>) {
+        // do nothing as comment does not allow children
     }
 }
 
@@ -215,15 +231,15 @@ impl Html for Element {
         self.attributes.push(attribute);
     }
 
-    fn add_attributes(&mut self, attributes: Vec<Attribute>) {
-        self.attributes.append(attributes);
+    fn add_attributes(&mut self, mut attributes: Vec<Attribute>) {
+        self.attributes.append(&mut attributes);
     }
 
     fn add_child(&mut self, child: Box<dyn Html>) {
         self.children.push(child);
     }
 
-    fn add_children(&mut self, children: Vec<Box<dyn Html>>) {
-        self.children.append(children);
+    fn add_children(&mut self, mut children: Vec<Box<dyn Html>>) {
+        self.children.append(&mut children);
     }
 }

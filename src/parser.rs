@@ -26,9 +26,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Vec<Box<dyn Html>> {
-        let mut elements : Vec<Box<dyn Html>> = vec![];
-        let current_state = State::None();
+    pub fn parse(&mut self) -> Vec<&'a Box<dyn Html>> {
+        let mut elements : Vec<&Box<dyn Html>> = vec![];
+        let mut current_state = State::None();
         loop {
             match self.tokens.next() {
                 Some(tok) => {
@@ -41,7 +41,7 @@ impl<'a> Parser<'a> {
                                 match self.tokens.next() {
                                     Some(Token::Indentation()) => continue,
                                     Some(Token::PercentSign()) => {
-                                        if let State::Element(el) = current_state {
+                                        if let State::Element(ref mut el) = current_state {
                                             el.add_child(self.parse_element());
                                         } else {
                                             panic!("Unexpected token in parsing");
@@ -57,9 +57,6 @@ impl<'a> Parser<'a> {
                     }
                 }, 
                 None => break,
-            }
-            if let State::Element(ref el) = current_state {
-                elements.push();
             }
         }
         elements
@@ -113,14 +110,15 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        if let State::Element(el) = current_state {
+        if let State::Element(mut el) = current_state {
             if attributes.len() > 0 {
-                
+                el.add_attributes(attributes);
             }
+            // elements.push(el);
+            el
         } else {
             panic!("Invalid state when parsing element");
         }
-            
         
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "hamlrs"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Jon Hartwell <jon@dontbreakthebuild.com>"]
 
 [lib]
@@ -18,3 +18,5 @@ doctest = true
 doc = true
 
 [dependencies]
+
+[publish]
