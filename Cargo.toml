@@ -2,6 +2,7 @@
 name = "hamlrs"
 version = "0.0.1"
 authors = ["Jon Hartwell <jon@dontbreakthebuild.com>"]
+license = "MIT"
 
 [lib]
 name = "haml"
@@ -18,5 +19,3 @@ doctest = true
 doc = true
 
 [dependencies]
-
-[publish]
