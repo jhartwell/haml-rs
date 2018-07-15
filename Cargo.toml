@@ -8,6 +8,8 @@ homepage = "http://www.haml.rs"
 respository = "https://github.com/jhartwell/haml-rs"
 keywords = ["haml", "templating", "template"]
 categories = ["command-line-utilities", "development-tools", "parser-implementations", "template-engine"]
+readme = "README"
+maintenance = { status = "actively-developed" }
 
 [lib]
 name = "haml"

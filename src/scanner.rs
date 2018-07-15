@@ -2,7 +2,6 @@ use std::str::Chars;
 use values::Token;
 
 pub struct Scanner<'a> {
-    haml: &'a str,
     chars: Chars<'a>,
     current_char: Option<char>,
     tokens: Vec<Token>,
@@ -13,7 +12,6 @@ pub struct Scanner<'a> {
 impl<'a> Scanner<'a> {
     pub fn new(raw_haml: &'a str) -> Scanner<'a> {
         Scanner {
-            haml: &raw_haml,
             chars: raw_haml.chars(),
             tokens: Vec::new(),
             is_quoted: false,

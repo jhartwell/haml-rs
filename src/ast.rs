@@ -22,7 +22,7 @@ impl Attribute {
     }
 }
 
-pub trait Html : fmt::Display + fmt::Debug {
+pub trait Html: fmt::Display + fmt::Debug {
     fn tag(&self) -> &Option<String>;
     fn children(&self) -> &Vec<Box<dyn Html>>;
     fn attributes(&self) -> &Vec<Attribute>;
@@ -101,14 +101,6 @@ impl Html for Text {
 }
 
 impl Text {
-    pub fn new(text: String) -> Text {
-        Text {
-            text,
-            children: vec![],
-            attributes: vec![],
-        }
-    }
-
     pub fn boxed(text: String) -> Box<Text> {
         Box::new(Text {
             text,
@@ -132,14 +124,6 @@ impl fmt::Display for Comment {
 }
 
 impl Comment {
-    pub fn new(text: String) -> Comment {
-        Comment {
-            text,
-            children: vec![],
-            attributes: vec![],
-        }
-    }
-
     pub fn boxed(text: String) -> Box<Comment> {
         Box::new(Comment {
             text,
@@ -155,7 +139,7 @@ impl Html for Comment {
     }
 
     fn to_html(&self) -> String {
-        format!("<!-- {} -->\n", self.text)
+        format!("<!-- {} -->", self.text)
     }
 
     fn children(&self) -> &Vec<Box<dyn Html>> {
@@ -191,14 +175,6 @@ pub struct Element {
 }
 
 impl Element {
-    pub fn new(tag: String) -> Element {
-        Element {
-            tag: Some(tag),
-            children: vec![],
-            attributes: vec![],
-        }
-    }
-
     pub fn boxed(tag: String) -> Box<Element> {
         Box::new(Element {
             tag: Some(tag),
