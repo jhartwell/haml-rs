@@ -3,6 +3,7 @@ name = "hamlrs"
 version = "0.0.1"
 authors = ["Jon Hartwell <jon@dontbreakthebuild.com>"]
 license = "MIT"
+description = "A Rust library and CLI application for parsing [Haml](http://haml.info)"
 
 [lib]
 name = "haml"
