@@ -16,7 +16,7 @@ impl Haml {
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
         let parsed_values = parser.parse();
-        Generator::to_html(parsed_values)
+        Generator::to_html(&parsed_values)
     }
 }
 

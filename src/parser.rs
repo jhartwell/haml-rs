@@ -5,8 +5,15 @@ use std::fmt;
 
 pub struct Parser<'a> {
     tokens: Iter<'a, Token>,
-    current: State,
-    elements: Vec<Box<dyn Html>>,
+}
+
+
+#[derive(Debug, PartialEq, Clone)]
+enum AttributeState {
+    Start(),
+    Id(String),
+    Value(),
+    End(),
 }
 
 #[derive(Debug)]
@@ -15,12 +22,10 @@ enum State {
     EndElement(),
     StartIdDiv(),
     StartClassDiv(),
-    Element(Box<dyn Html>),
-    NewAttribute(),
-    AttributeId(),
-    AttributeAssign(),
-    AttributeValue(),
-    Children(),
+    AttributeState(AttributeState),
+    Element(),
+    Attributes(Vec<Attribute>),
+    Children(Vec<Box<dyn Html>>),
     Text(),
     Comment(),
     NewLine(),
@@ -34,15 +39,13 @@ impl fmt::Display for State {
             State::EndElement() => "EndElement",
             State::StartIdDiv() => "StartIdDiv",
             State::StartClassDiv() => "StartClassDiv",
-            State::Element(_el) => "Element",
-            State::NewAttribute() => "New Attribute",
-            State::AttributeId() => "AttributeId",
-            State::AttributeAssign() => "AttributeAssign",
-            State::AttributeValue() => "AttributeValue",
-            State::Children() => "Children",
+            State::Element() => "Element",
+            State::Attributes(_attrs) => "Attributes",
+            State::Children(_chiildren) => "Children",
             State::Text() => "Text",
             State::Comment() => "Comment",
             State::NewLine() => "NewLine",
+            State::AttributeState(_as) => "AttributeState",
             State::None() => "None",
         };
         write!(f, "{}", output)
@@ -53,168 +56,126 @@ impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
         Parser {
             tokens: tokens.iter(),
-            current: State::None(),
-            elements: vec![],
         }
     }
 
-    pub fn parse(&mut self) -> &Vec<Box<dyn Html>> {
-        if self.elements.len() > 0 {
-            return &self.elements;
-        }
+    pub fn parse(&mut self) -> Vec<Box<dyn Html>> {
         let mut current_state = State::None();
+        let mut elements: Vec<Box<dyn Html>> = vec![];
+        let mut element: Option<Box<dyn Html>> = None;
         loop {
             match self.tokens.next() {
                 Some(tok) => match tok {
                     Token::Backslash() => current_state = State::Comment(),
+                    Token::EndLine() => current_state = State::NewLine(),
                     Token::Text(txt) => {
                         match current_state {
-                            State::Comment() => self.elements.push(Comment::boxed(txt.to_string())),
+                            State::Comment() => elements.push(Comment::boxed(txt.to_string())),
                             _ => {
                                 current_state = State::Text();
-                                self.elements.push(Text::boxed(txt.to_string()));
+                                elements.push(Text::boxed(txt.to_string()));
+                                element = None;
                             },
                         }
                     },
                     Token::PercentSign() => {
-                        let el = self.parse_element();
-                        current_state = State::Element(el);
+                        if let Some(Token::Text(tag)) = self.tokens.next() {
+                            let mut el = Element::boxed(tag.to_string());
+                            current_state = State::Element();
+                            // elements.push(el);
+                            element = Some(el);
+                            
+                        } else {
+                            panic!("Expected tag name after \"%\"");
+                        }
                     },
                     Token::Period() => {
-                        let el = self.parse_div(State::StartClassDiv());
-                        current_state = State::Element(el);
+                        let mut div = Element::boxed("div".to_string());
+                        if let Some(Token::Text(txt)) = self.tokens.next() {
+                            div.add_attribute(Attribute::new("class".to_string(), txt.to_string()));
+                        } else {    
+                            panic!("Trying to parse div in class form (start with period) but couldn't find valid text for class name.");
+                        }
+                        current_state = State::Element();
+                        elements.push(div);
                     },
                     Token::Hashtag() => {
-                        let el = self.parse_div(State::StartIdDiv());
-                        current_state = State::Element(el);
+                        let mut div = Element::boxed("div".to_string());
+                        if let Some(Token::Text(txt)) = self.tokens.next() {
+                            div.add_attribute(Attribute::new("id".to_string(), txt.to_string()));
+                        } else {    
+                            panic!("Trying to parse div in ID form (start with #) but couldn't find valid text for class name.");
+                        }
+                        current_state = State::Element();                        
+                        elements.push(div);
                     },
                     Token::Indentation() => loop {
                         match self.tokens.next() {
                             Some(Token::Indentation()) => continue,
                             Some(Token::PercentSign()) => {
-                                if let State::Element(ref mut el) = current_state {
-                                    el.add_child(self.parse_element());
-                                } else {
-                                    panic!("Unexpected token in parsing");
-                                }
-                            }
+                            },
                             None => break,
                             _ => panic!("Unexpected token in parsing"),
                         }
                     },
                     Token::Whitespace() => continue,
-                    t => panic!(format!("{}: Unsupported feature", t.to_string())),
-                },
-                None => {
-                    if let State::Element(el) = current_state {
-                        self.elements.push(el);
-                    }
-                    break;
-                }
-            }
-        }
-        &self.elements
-    }
-
-    fn parse_div(&mut self, state: State) -> Box<dyn Html> {
-        
-        let mut div = Element::boxed("div".to_string());
-        match state {
-            State::StartClassDiv() => {
-                if let Some(Token::Text(txt)) = self.tokens.next() {
-                    div.add_attribute(Attribute::new("class".to_string(), txt.to_string()));
-                } else {
-                    panic!("Trying to parse div in class form (start with period) but couldn't find valid text for class name.");
-                }
-            },
-            State::StartIdDiv() => {
-                if let Some(Token::Text(txt)) = self.tokens.next() {
-                    div.add_attribute(Attribute::new("id".to_string(), txt.to_string()));
-                } else {
-                    panic!("Trying to parse div in ID form (start with #) but couldn't find valid text for class name.");
-                }
-            },
-            _ => panic!("Invalid state for parsing straight div element"),
-        }
-        div
-    }
-    fn parse_element(&mut self) -> Box<dyn Html> {
-        let mut id: &str = "";
-        let mut attributes = vec![];
-        let mut children : Vec<Box<dyn Html>> = vec![];
-        let mut current_state = State::BeginElement();
-
-        let mut element: Option<Box<dyn Html>> = None;
-        loop {
-            if let Some(tok) = self.tokens.next() {
-                match tok {
-                    Token::Text(txt) => match current_state {
-                        State::BeginElement() => current_state = State::Element(Element::boxed(txt.to_string())),
-                        State::NewAttribute() => {
-                            id = txt;
-                            current_state = State::AttributeId();
-                        },
-                        State::AttributeAssign() => {
-                            &attributes.push(Attribute::new(id.to_string(), txt.to_string()));
-                            id = "";
-                            current_state = State::AttributeValue();
-                        },
-                        State::Children() => {
-                            &children.push(Text::boxed(txt.to_string()));
-                        },
-                        State::Element(el) => {
-                            current_state = State::Children();
-                            element = Some(el);
-                            &children.push(Text::boxed(txt.to_string()));
-                        },
-                        _ => panic!("Unexpected value in element"),
-                    },
-                    Token::OpenParen() => match current_state {
-                        State::BeginElement() => panic!("Invalid state when parsing element"),
-                        State::Element(el) => {
-                            element = Some(el);
-                            current_state = State::NewAttribute();
-                        }
-                        _ => panic!("Invalid token \"(\" when parsing element"),
-                    },
-                    Token::CloseParen() => match current_state {
-                        State::AttributeValue() => current_state = State::Children(),
-                        _ => panic!("Invalid token \")\" when parsing element"),
-                    },
-                    Token::Whitespace() => {
+                    Token::OpenParen() => {
+                        let mut attributes = self.parse_attributes();
                         match current_state {
-                            State::Element(el) => {
-                                element = Some(el);
-                                current_state = State::Children();
+                            State::Element() => {
+                                match &element {
+                                    Some(ref mut el) => {
+                                        el.add_attributes(&mut attributes);
+                                        elements.push(el);
+                                    },
+                                    _ => continue,
+                                }
                             },
-                            State::AttributeValue() => current_state = State::NewAttribute(),
                             _ => continue,
                         }
                     },
-                    Token::Equal() => match current_state {
-                        State::AttributeId() => current_state = State::AttributeAssign(),
-                        _ => panic!("Invalid token \"=\" when parsing element"),
+                    t => panic!(format!("{}: Unsupported feature", t.to_string())),
+                },
+                None => break,
+            }
+        }
+        elements
+    }
+
+    fn parse_attributes(&mut self) -> Vec<Attribute> {
+        let mut attributes = vec![];
+        let mut current_state = AttributeState::Start();
+        loop {
+            if let Some(tok) = self.tokens.next() {
+                match tok {
+                    Token::Whitespace() => continue,
+                    Token::Text(txt) => {
+                        match current_state {
+                            AttributeState::Start() => {
+                                current_state = AttributeState::Id(txt.to_string());
+                            },
+                            AttributeState::Id(id) => {
+                                &attributes.push(Attribute::new(id.to_string(), txt.to_string()));
+                                current_state = AttributeState::Start();
+                            },
+                            _ => panic!("Invalid token when parsing attributes"),
+                        }
                     },
-                    Token::EndLine() => break,
-                    _ => break,
+                    Token::Equal() => {
+                        match &current_state {
+                            AttributeState::Id(_id) => continue,
+                            _ => panic!("Invalid \"=\" when trying to parse attributes."),
+                        }
+                    },
+                    Token::CloseParen() => break,
+                    _ => panic!("Invalid token when parsing attributes"),
                 }
             } else {
                 break;
             }
         }
-        if let State::Element(el) = current_state {
-            element = Some(el);
-        }
-
-        if let Some(ref mut el) = element {
-            el.add_attributes(attributes);
-            el.add_children(children);
-        }
-
-        match element {
-            Some(el) => el,
-            None => panic!("No elements were found when parsing element"),
-        }
+        //el.add_attributes(&mut attributes);
+        attributes
     }
 }
 
@@ -225,7 +186,7 @@ mod test {
 
     #[test]
     fn test_basic_element() {
-        let haml = "%div";
+        let haml = "%span";
         let mut scanner = Scanner::new(haml);
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
@@ -233,14 +194,14 @@ mod test {
 
         assert_eq!(1, elements.len());
         assert_eq!(
-            &Some("div".to_string()),
+            &Some("span".to_string()),
             elements.iter().nth(0).unwrap().tag()
         );
     }
 
     #[test]
     fn test_basic_element_with_single_attribute() {
-        let haml = "%div( id=\"test\")";
+        let haml = "%span( id=\"test\")";
         let mut scanner = Scanner::new(haml);
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
@@ -248,7 +209,7 @@ mod test {
 
         assert_eq!(1, elements.len());
         let actual_element = elements.iter().nth(0).unwrap();
-        assert_eq!(&Some("div".to_string()), actual_element.tag());
+        assert_eq!(&Some("span".to_string()), actual_element.tag());
         assert_eq!(1, actual_element.attributes().len());
         let actual_attribute = actual_element.attributes().iter().nth(0).unwrap();
         assert_eq!("id", actual_attribute.key());
@@ -345,6 +306,23 @@ mod test {
         let actual_element = elements.iter().nth(0).unwrap();
         assert_eq!(&None, actual_element.tag());
         assert_eq!("<!-- comment -->", actual_element.to_html());
+    }
+
+    #[test]
+    fn test_comment_only_one_line() {
+        let haml = "\\ comment\n%span";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        let mut parser = Parser::new(tokens);
+        let elements = parser.parse();
+
+        assert_eq!(2, elements.len());
+        let actual_first_element = elements.iter().nth(0).unwrap();
+        assert_eq!(&None, actual_first_element.tag());
+        assert_eq!("<!-- comment -->", actual_first_element.to_html());
+
+        let actual_second_element = elements.iter().nth(1).unwrap();
+        assert_eq!(&Some("span".to_string()), actual_second_element.tag());
     }
 
     #[test]

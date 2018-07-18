@@ -23,14 +23,17 @@ impl Attribute {
 }
 
 pub trait Html: fmt::Display + fmt::Debug {
+    type Impl;
+
+    fn to_owned(&self) -> Impl;
     fn tag(&self) -> &Option<String>;
     fn children(&self) -> &Vec<Box<dyn Html>>;
     fn attributes(&self) -> &Vec<Attribute>;
 
     fn add_child(&mut self, child: Box<dyn Html>);
-    fn add_children(&mut self, children: Vec<Box<dyn Html>>);
+    fn add_children(&mut self, children: &mut Vec<Box<dyn Html>>);
     fn add_attribute(&mut self, attribute: Attribute);
-    fn add_attributes(&mut self, attributes: Vec<Attribute>);
+    fn add_attributes(&mut self, attributes: &mut Vec<Attribute>);
 
     fn to_html(&self) -> String {
         let mut html_builder = String::new();
@@ -67,6 +70,16 @@ impl<'a> fmt::Display for Text {
 }
 
 impl Html for Text {
+    type Impl = Text;
+
+    fn to_owned(&self) -> Text {
+        Text {
+            text: String::from(self.text),
+            children: vec![],
+            attributes: vec![],
+        }
+    }
+
     fn tag(&self) -> &Option<String> {
         &None
     }
@@ -91,11 +104,11 @@ impl Html for Text {
         // do nothing as text does not allow children
     }
 
-    fn add_attributes(&mut self, attributes: Vec<Attribute>) {
+    fn add_attributes(&mut self, attributes: &mut Vec<Attribute>) {
         // do nothing as text does not allow attributes
     }
 
-    fn add_children(&mut self, children: Vec<Box<dyn Html>>) {
+    fn add_children(&mut self, children: &mut Vec<Box<dyn Html>>) {
         // do nothing as text does not allow children
     }
 }
@@ -134,6 +147,16 @@ impl Comment {
 }
 
 impl Html for Comment {
+    type Impl = Comment;
+
+    fn to_owned(&self) -> Comment {
+        Comment {
+            text: self.text.clone(),
+            children: vec![],
+            attributes: vec![],
+        }
+    }
+
     fn tag(&self) -> &Option<String> {
         &None
     }
@@ -154,7 +177,7 @@ impl Html for Comment {
         // do nothing as comment does not allow attributes
     }
 
-    fn add_attributes(&mut self, attributes: Vec<Attribute>) {
+    fn add_attributes(&mut self, attributes: &mut Vec<Attribute>) {
         // do nothing as comment does not allow attributes
     }
 
@@ -162,7 +185,7 @@ impl Html for Comment {
         // do nothing as comment does not allow children
     }
 
-    fn add_children(&mut self, children: Vec<Box<dyn Html>>) {
+    fn add_children(&mut self, children: &mut Vec<Box<dyn Html>>) {
         // do nothing as comment does not allow children
     }
 }
@@ -191,6 +214,16 @@ impl fmt::Display for Element {
 }
 
 impl Html for Element {
+    type Impl = Element;
+
+    fn to_owned(&self) -> Element {
+        Element {
+            tag: self.tag.clone(),
+            children: self.children.iter().map(|x| x.to_owned()).collect(),
+            attributes: self.attributes.clone(),
+
+        }
+    }
     fn tag(&self) -> &Option<String> {
         &self.tag
     }
@@ -207,15 +240,15 @@ impl Html for Element {
         self.attributes.push(attribute);
     }
 
-    fn add_attributes(&mut self, mut attributes: Vec<Attribute>) {
-        self.attributes.append(&mut attributes);
+    fn add_attributes(&mut self, attributes: &mut Vec<Attribute>) {
+        self.attributes.append(attributes);
     }
 
     fn add_child(&mut self, child: Box<dyn Html>) {
         self.children.push(child);
     }
 
-    fn add_children(&mut self, mut children: Vec<Box<dyn Html>>) {
-        self.children.append(&mut children);
+    fn add_children(&mut self, children: &mut Vec<Box<dyn Html>>) {
+        self.children.append(children);
     }
 }
