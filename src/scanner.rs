@@ -6,6 +6,7 @@ pub struct Scanner<'a> {
     current_char: Option<char>,
     tokens: Vec<Token>,
     is_quoted: bool,
+    doctype_valid: bool,
     previous_token: Option<Token>,
 }
 
@@ -17,6 +18,7 @@ impl<'a> Scanner<'a> {
             is_quoted: false,
             current_char: None,
             previous_token: None,
+            doctype_valid: true,
         }
     }
 
@@ -94,7 +96,7 @@ impl<'a> Iterator for Scanner<'a> {
                 }
             }
             '=' => Some(Token::Equal()),
-            '\\' => Some(Token::Backslash()),
+            '/' => Some(Token::ForwardSlash()),
             '%' => Some(Token::PercentSign()),
             '.' => Some(Token::Period()),
             ' ' => {
@@ -223,10 +225,10 @@ mod test {
     }
 
     #[test]
-    fn test_backslash() {
-        let haml = "\\";
+    fn test_forwardslash() {
+        let haml = "/";
         let mut scanner = Scanner::new(haml);
-        assert_eq!(Some(Token::Backslash()), scanner.next());
+        assert_eq!(Some(Token::ForwardSlash()), scanner.next());
     }
 
     #[test]
