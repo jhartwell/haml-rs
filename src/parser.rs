@@ -123,10 +123,10 @@ impl<'a> Parser<'a> {
                         let mut attributes = self.parse_attributes();
                         match current_state {
                             State::Element() => {
-                                match &element {
+                                match element {
                                     Some(ref mut el) => {
                                         el.add_attributes(&mut attributes);
-                                        elements.push(el);
+                                        
                                     },
                                     _ => continue,
                                 }

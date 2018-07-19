@@ -1,11 +1,81 @@
 use std::fmt;
-use std::marker::PhantomData;
-use std::slice;
+use std::vec::IntoIter;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Attribute {
     value: String,
     key: String,
+}
+
+#[derive(Debug)]
+pub struct Attributes {
+    attributes: Vec<Attribute>,
+}
+
+
+impl IntoIterator for Attributes {
+    type Item = Attribute;
+    type IntoIter = ::std::vec::IntoIter<Attribute>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.attributes.into_iter()
+    }
+}
+
+impl Clone for Attributes {
+    fn clone(&self) -> Attributes {
+        Attributes {
+            attributes: self.attributes.into_iter().collect(),
+        }
+    }
+}
+
+
+impl Attributes {
+    pub fn new() -> Attributes {
+        Attributes {
+            attributes: vec![],
+        }
+    }
+
+    pub fn push(&self, attribute: Attribute) {
+        self.attributes.push(attribute);
+    }
+
+    pub fn append(&self, attributes: &mut Vec<Attribute>) {
+        self.attributes.append(attributes);
+    }
+
+}
+
+#[derive(Debug)]
+pub struct Children {
+    nodes: Vec<Box<dyn Html>>,
+}
+
+impl Children {
+    pub fn new() -> Children {
+        Children {
+            nodes: vec![],
+        }
+    }
+    
+    pub fn push(&self, child: Box<dyn Html>) {
+        self.nodes.push(child);
+    }
+
+    pub fn append(&self, children: &mut Vec<Box<dyn Html>>) {
+        self.nodes.append(children);
+    }
+}
+
+impl IntoIterator for Children {
+    type Item = Box<dyn Html>;
+    type IntoIter = IntoIter<Box<dyn Html>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.nodes.into_iter()
+    }
 }
 
 impl Attribute {
@@ -23,12 +93,9 @@ impl Attribute {
 }
 
 pub trait Html: fmt::Display + fmt::Debug {
-    type Impl;
-
-    fn to_owned(&self) -> Impl;
     fn tag(&self) -> &Option<String>;
-    fn children(&self) -> &Vec<Box<dyn Html>>;
-    fn attributes(&self) -> &Vec<Attribute>;
+    fn children(&self) -> Children;
+    fn attributes(&self) -> Attributes;
 
     fn add_child(&mut self, child: Box<dyn Html>);
     fn add_children(&mut self, children: &mut Vec<Box<dyn Html>>);
@@ -40,13 +107,13 @@ pub trait Html: fmt::Display + fmt::Debug {
         if let Some(tag) = self.tag() {
             html_builder.push_str(&format!("<{}", tag));
 
-            for attr in self.attributes() {
+            for attr in self.attributes().into_iter() {
                 html_builder.push_str(&format!(" {}=\"{}\"", attr.key, attr.value));
             }
 
             html_builder.push('>');
 
-            for child in self.children() {
+            for child in self.children().into_iter() {
                 html_builder.push_str(&child.to_html());
             }
 
@@ -59,8 +126,8 @@ pub trait Html: fmt::Display + fmt::Debug {
 #[derive(Debug)]
 pub struct Text {
     text: String,
-    children: Vec<Box<dyn Html>>,
-    attributes: Vec<Attribute>,
+    children: Children,
+    attributes: Attributes,
 }
 
 impl<'a> fmt::Display for Text {
@@ -70,16 +137,6 @@ impl<'a> fmt::Display for Text {
 }
 
 impl Html for Text {
-    type Impl = Text;
-
-    fn to_owned(&self) -> Text {
-        Text {
-            text: String::from(self.text),
-            children: vec![],
-            attributes: vec![],
-        }
-    }
-
     fn tag(&self) -> &Option<String> {
         &None
     }
@@ -88,12 +145,12 @@ impl Html for Text {
         self.text.clone()
     }
 
-    fn children(&self) -> &Vec<Box<dyn Html>> {
-        &self.children
+    fn children(&self) -> Children {
+        self.children.clone()
     }
 
-    fn attributes(&self) -> &Vec<Attribute> {
-        &self.attributes
+    fn attributes(&self) -> Attributes {
+        self.attributes.clone()
     }
 
     fn add_attribute(&mut self, attribute: Attribute) {
@@ -117,8 +174,8 @@ impl Text {
     pub fn boxed(text: String) -> Box<Text> {
         Box::new(Text {
             text,
-            children: vec![],
-            attributes: vec![],
+            children: Children::new(),
+            attributes: Attributes::new(),
         })
     }
 }
@@ -126,8 +183,8 @@ impl Text {
 #[derive(Debug)]
 pub struct Comment {
     text: String,
-    attributes: Vec<Attribute>,
-    children: Vec<Box<dyn Html>>,
+    attributes: Attributes,
+    children: Children,
 }
 
 impl fmt::Display for Comment {
@@ -140,23 +197,13 @@ impl Comment {
     pub fn boxed(text: String) -> Box<Comment> {
         Box::new(Comment {
             text,
-            children: vec![],
-            attributes: vec![],
+            children: Children::new(),
+            attributes: Attributes::new(),
         })
     }
 }
 
 impl Html for Comment {
-    type Impl = Comment;
-
-    fn to_owned(&self) -> Comment {
-        Comment {
-            text: self.text.clone(),
-            children: vec![],
-            attributes: vec![],
-        }
-    }
-
     fn tag(&self) -> &Option<String> {
         &None
     }
@@ -165,12 +212,12 @@ impl Html for Comment {
         format!("<!-- {} -->", self.text)
     }
 
-    fn children(&self) -> &Vec<Box<dyn Html>> {
-        &self.children
+    fn children(&self) -> Children {
+        self.children.clone()
     }
 
-    fn attributes(&self) -> &Vec<Attribute> {
-        &self.attributes
+    fn attributes(&self) -> Attributes {
+        self.attributes.clone()
     }
 
     fn add_attribute(&mut self, attribute: Attribute) {
@@ -193,16 +240,16 @@ impl Html for Comment {
 #[derive(Debug)]
 pub struct Element {
     tag: Option<String>,
-    children: Vec<Box<dyn Html>>,
-    attributes: Vec<Attribute>,
+    children: Children,
+    attributes: Attributes,
 }
 
 impl Element {
     pub fn boxed(tag: String) -> Box<Element> {
         Box::new(Element {
             tag: Some(tag),
-            children: vec![],
-            attributes: vec![],
+            children: Children::new(),
+            attributes: Attributes::new(),
         })
     }
 }
@@ -214,26 +261,16 @@ impl fmt::Display for Element {
 }
 
 impl Html for Element {
-    type Impl = Element;
-
-    fn to_owned(&self) -> Element {
-        Element {
-            tag: self.tag.clone(),
-            children: self.children.iter().map(|x| x.to_owned()).collect(),
-            attributes: self.attributes.clone(),
-
-        }
-    }
     fn tag(&self) -> &Option<String> {
         &self.tag
     }
 
-    fn children(&self) -> &Vec<Box<dyn Html>> {
-        &self.children
+    fn children(&self) -> Children {
+        self.children.clone()
     }
 
-    fn attributes(&self) -> &Vec<Attribute> {
-        &self.attributes
+    fn attributes(&self) -> Attributes {
+        self.attributes.clone()
     }
 
     fn add_attribute(&mut self, attribute: Attribute) {
