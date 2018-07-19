@@ -1,12 +1,11 @@
-use ast::{Attribute, Comment, Element, Html, Text};
+use ast::{Attribute, Html, HtmlElement};
+use std::fmt;
 use std::slice::Iter;
 use values::Token;
-use std::fmt;
 
 pub struct Parser<'a> {
     tokens: Iter<'a, Token>,
 }
-
 
 #[derive(Debug, PartialEq, Clone)]
 enum AttributeState {
@@ -16,16 +15,15 @@ enum AttributeState {
     End(),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum State {
+    Start(),
+    DocType(),
     BeginElement(),
     EndElement(),
     StartIdDiv(),
     StartClassDiv(),
-    AttributeState(AttributeState),
     Element(),
-    Attributes(Vec<Attribute>),
-    Children(Vec<Box<dyn Html>>),
     Text(),
     Comment(),
     NewLine(),
@@ -40,13 +38,12 @@ impl fmt::Display for State {
             State::StartIdDiv() => "StartIdDiv",
             State::StartClassDiv() => "StartClassDiv",
             State::Element() => "Element",
-            State::Attributes(_attrs) => "Attributes",
-            State::Children(_chiildren) => "Children",
             State::Text() => "Text",
             State::Comment() => "Comment",
             State::NewLine() => "NewLine",
-            State::AttributeState(_as) => "AttributeState",
             State::None() => "None",
+            State::DocType() => "DocType",
+            State::Start() => "Start",
         };
         write!(f, "{}", output)
     }
@@ -59,61 +56,149 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Vec<Box<dyn Html>> {
-        let mut current_state = State::None();
-        let mut elements: Vec<Box<dyn Html>> = vec![];
-        let mut element: Option<Box<dyn Html>> = None;
+    pub fn parse(&mut self) -> Vec<Html> {
+        let mut current_state = State::Start();
+        let mut elements: Vec<Html> = vec![];
+        let mut element: Option<HtmlElement> = None;
         loop {
             match self.tokens.next() {
                 Some(tok) => match tok {
-                    Token::Backslash() => current_state = State::Comment(),
-                    Token::EndLine() => current_state = State::NewLine(),
-                    Token::Text(txt) => {
-                        match current_state {
-                            State::Comment() => elements.push(Comment::boxed(txt.to_string())),
-                            _ => {
+                    Token::ForwardSlash() => current_state = State::Comment(),
+                    Token::EndLine() => {
+                        current_state = if current_state == State::DocType() {
+                            State::DocType()
+                        } else {
+                            State::NewLine()
+                        }
+                    },
+                    Token::Text(txt) => match current_state {
+                        State::Start() => {
+                            if txt == "!!!" {
+                                loop {
+                                    match self.tokens.next() {
+                                        Some(tok) => match tok {
+                                            Token::Text(doctype) => {
+                                                current_state = State::DocType();
+                                                elements.push(Html::Doctype(doctype.to_string()));
+                                                break;
+                                            },
+                                            Token::EndLine() => break,
+                                            _ => continue
+                                        },
+                                        None => {
+                                            elements.push(Html::Doctype("".to_string()));
+                                            current_state = State::DocType();
+                                        }
+                                    }
+                                }
+                            } else {
                                 current_state = State::Text();
-                                elements.push(Text::boxed(txt.to_string()));
+                                elements.push(Html::Text(txt.to_string()));
                                 element = None;
-                            },
+                            }
+                        },
+                        State::DocType() => {
+                            if txt == "!!!" {
+                                loop {
+                                    match self.tokens.next() {
+                                        Some(tok) => match tok {
+                                            Token::Text(doctype) => {
+                                                current_state = State::DocType();
+                                                elements.push(Html::Doctype(doctype.to_string()));
+                                                break;
+                                            },
+                                            Token::EndLine() => break,
+                                            _ => continue
+                                        },
+                                        None => {
+                                            elements.push(Html::Doctype("".to_string()));
+                                            current_state = State::DocType();
+                                        }
+                                    }
+                                }
+                            } else {
+                                current_state = State::Text();
+                                elements.push(Html::Text(txt.to_string()));
+                                element = None;
+                            }
+                        }
+                        State::Comment() => elements.push(Html::Comment(txt.to_string())),
+                        _ => {
+                            current_state = State::Text();
+                            elements.push(Html::Text(txt.to_string()));
+                            element = None;
                         }
                     },
                     Token::PercentSign() => {
                         if let Some(Token::Text(tag)) = self.tokens.next() {
-                            let mut el = Element::boxed(tag.to_string());
                             current_state = State::Element();
-                            // elements.push(el);
-                            element = Some(el);
-                            
+                            element = Some(HtmlElement::new(tag.to_string()));
                         } else {
                             panic!("Expected tag name after \"%\"");
                         }
-                    },
-                    Token::Period() => {
-                        let mut div = Element::boxed("div".to_string());
-                        if let Some(Token::Text(txt)) = self.tokens.next() {
-                            div.add_attribute(Attribute::new("class".to_string(), txt.to_string()));
-                        } else {    
-                            panic!("Trying to parse div in class form (start with period) but couldn't find valid text for class name.");
+                    }
+                    Token::Period() => match current_state {
+                        State::Element() => match self.tokens.next() {
+                            Some(tok) => match tok {
+                                Token::Text(txt) => {
+                                    if let Some(ref mut el) = element {
+                                        el.add_attribute(Attribute::new(
+                                            "class".to_string(),
+                                            txt.to_string(),
+                                        ));
+                                    }
+                                }
+                                _ => panic!("Expecting class but didn't find text"),
+                            },
+                            _ => panic!("Expecting class but didn't find text"),
+                        },
+                        _ => {
+                            let mut div = HtmlElement::new("div".to_string());
+                            if let Some(Token::Text(txt)) = self.tokens.next() {
+                                div.add_attribute(Attribute::new(
+                                    "class".to_string(),
+                                    txt.to_string(),
+                                ));
+                            } else {
+                                panic!("Trying to parse div in class form (start with period) but couldn't find valid text for class name.");
+                            }
+                            current_state = State::Element();
+                            element = Some(div);
                         }
-                        current_state = State::Element();
-                        elements.push(div);
                     },
-                    Token::Hashtag() => {
-                        let mut div = Element::boxed("div".to_string());
-                        if let Some(Token::Text(txt)) = self.tokens.next() {
-                            div.add_attribute(Attribute::new("id".to_string(), txt.to_string()));
-                        } else {    
-                            panic!("Trying to parse div in ID form (start with #) but couldn't find valid text for class name.");
+                    Token::Hashtag() => match current_state {
+                        State::Element() => match self.tokens.next() {
+                            Some(tok) => match tok {
+                                Token::Text(txt) => {
+                                    if let Some(ref mut el) = element {
+                                        el.add_attribute(Attribute::new(
+                                            "id".to_string(),
+                                            txt.to_string(),
+                                        ));
+                                    }
+                                }
+                                _ => panic!("Expected to find ID text when parsing element ID"),
+                            },
+                            _ => panic!("Expected ID but found nothing."),
+                        },
+                        _ => {
+                            let mut div = HtmlElement::new("div".to_string());
+                            if let Some(Token::Text(txt)) = self.tokens.next() {
+                                div.add_attribute(Attribute::new(
+                                    "id".to_string(),
+                                    txt.to_string(),
+                                ));
+                            } else {
+                                panic!("Trying to parse div in ID form (start with #) but couldn't find valid text for class name.");
+                            }
+                            current_state = State::Element();
+                            element = Some(div);
                         }
-                        current_state = State::Element();                        
-                        elements.push(div);
                     },
                     Token::Indentation() => loop {
                         match self.tokens.next() {
                             Some(Token::Indentation()) => continue,
-                            Some(Token::PercentSign()) => {
-                            },
+                            Some(Token::PercentSign()) => {}
                             None => break,
                             _ => panic!("Unexpected token in parsing"),
                         }
@@ -122,23 +207,25 @@ impl<'a> Parser<'a> {
                     Token::OpenParen() => {
                         let mut attributes = self.parse_attributes();
                         match current_state {
-                            State::Element() => {
-                                match &element {
-                                    Some(ref mut el) => {
-                                        el.add_attributes(&mut attributes);
-                                        elements.push(el);
-                                    },
-                                    _ => continue,
+                            State::Element() => match element {
+                                Some(ref mut el) => {
+                                    el.add_attributes(&mut attributes);
                                 }
+                                _ => continue,
                             },
                             _ => continue,
                         }
-                    },
+                    }
                     t => panic!(format!("{}: Unsupported feature", t.to_string())),
                 },
                 None => break,
             }
         }
+
+        if let Some(el) = element {
+            elements.push(Html::Element(el));
+        }
+
         elements
     }
 
@@ -149,32 +236,30 @@ impl<'a> Parser<'a> {
             if let Some(tok) = self.tokens.next() {
                 match tok {
                     Token::Whitespace() => continue,
-                    Token::Text(txt) => {
-                        match current_state {
-                            AttributeState::Start() => {
-                                current_state = AttributeState::Id(txt.to_string());
-                            },
-                            AttributeState::Id(id) => {
-                                &attributes.push(Attribute::new(id.to_string(), txt.to_string()));
-                                current_state = AttributeState::Start();
-                            },
-                            _ => panic!("Invalid token when parsing attributes"),
+                    Token::Text(txt) => match current_state {
+                        AttributeState::Start() => {
+                            current_state = AttributeState::Id(txt.to_string());
                         }
+                        AttributeState::Id(id) => {
+                            &attributes.push(Attribute::new(id.to_string(), txt.to_string()));
+                            current_state = AttributeState::Start();
+                        }
+                        _ => panic!("Invalid token when parsing attributes"),
                     },
-                    Token::Equal() => {
-                        match &current_state {
-                            AttributeState::Id(_id) => continue,
-                            _ => panic!("Invalid \"=\" when trying to parse attributes."),
-                        }
+                    Token::Equal() => match &current_state {
+                        AttributeState::Id(_id) => continue,
+                        _ => panic!("Invalid \"=\" when trying to parse attributes."),
                     },
                     Token::CloseParen() => break,
-                    _ => panic!("Invalid token when parsing attributes"),
+                    _ => panic!(format!(
+                        "Invalid token when parsing attributes: {}",
+                        tok.to_string()
+                    )),
                 }
             } else {
                 break;
             }
         }
-        //el.add_attributes(&mut attributes);
         attributes
     }
 }
@@ -185,178 +270,197 @@ mod test {
     use scanner::Scanner;
 
     #[test]
-    fn test_basic_element() {
+    fn test_element() {
         let haml = "%span";
         let mut scanner = Scanner::new(haml);
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
         let elements = parser.parse();
-
         assert_eq!(1, elements.len());
-        assert_eq!(
-            &Some("span".to_string()),
-            elements.iter().nth(0).unwrap().tag()
-        );
+        let actual_element = elements.iter().nth(0).unwrap();
+        match actual_element {
+            Html::Element(el) => {
+                assert_eq!("span", el.tag());
+
+                assert_eq!(0, el.children().len());
+                assert_eq!(0, el.attributes().len());
+            }
+            _ => panic!("Expecting element but found text or comment."),
+        }
     }
 
     #[test]
-    fn test_basic_element_with_single_attribute() {
-        let haml = "%span( id=\"test\")";
+    fn test_element_id_shorthand() {
+        let haml = "%span#test";
         let mut scanner = Scanner::new(haml);
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
         let elements = parser.parse();
-
         assert_eq!(1, elements.len());
         let actual_element = elements.iter().nth(0).unwrap();
-        assert_eq!(&Some("span".to_string()), actual_element.tag());
-        assert_eq!(1, actual_element.attributes().len());
-        let actual_attribute = actual_element.attributes().iter().nth(0).unwrap();
-        assert_eq!("id", actual_attribute.key());
-        assert_eq!("test", actual_attribute.value());
+        match actual_element {
+            Html::Element(el) => {
+                assert_eq!("span", el.tag());
+
+                assert_eq!(0, el.children().len());
+                assert_eq!(1, el.attributes().len());
+                let actual_attribute = el.attributes().iter().nth(0).unwrap();
+                assert_eq!("id", actual_attribute.key());
+                assert_eq!("test", actual_attribute.value());
+            }
+            _ => panic!("Expecting element but found text or comment."),
+        }
     }
 
     #[test]
-    fn test_basic_element_with_multiple_attributes() {
-        let haml = "%div( id=\"test\" class=\"container\")";
+    fn test_element_with_class_shorthand() {
+        let haml = "%span.container";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        println!("{:?}", tokens);
+        let mut parser = Parser::new(tokens);
+        let elements = parser.parse();
+        assert_eq!(1, elements.len());
+        let actual_element = elements.iter().nth(0).unwrap();
+        match actual_element {
+            Html::Element(el) => {
+                assert_eq!("span", el.tag());
+                assert_eq!(0, el.children().len());
+                assert_eq!(1, el.attributes().len());
+                let actual_attribute = el.attributes().iter().nth(0).unwrap();
+                assert_eq!("class", actual_attribute.key());
+                assert_eq!("container", actual_attribute.value());
+            }
+            _ => panic!("Expected element but found text or comment"),
+        }
+    }
+
+    #[test]
+    fn test_element_with_attributes() {
+        let haml = "%span(id=\"test\")";
         let mut scanner = Scanner::new(haml);
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
         let elements = parser.parse();
-
         assert_eq!(1, elements.len());
         let actual_element = elements.iter().nth(0).unwrap();
-        assert_eq!(&Some("div".to_string()), actual_element.tag());
-        assert_eq!(2, actual_element.attributes().len());
-        let actual_attribute_first = actual_element.attributes().iter().nth(0).unwrap();
-        assert_eq!("id", actual_attribute_first.key());
-        assert_eq!("test", actual_attribute_first.value());
-
-        let actual_attribute_second = actual_element.attributes().iter().nth(1).unwrap();
-        assert_eq!("class", actual_attribute_second.key());
-        assert_eq!("container", actual_attribute_second.value());        
+        match actual_element {
+            Html::Element(el) => {
+                assert_eq!("span", el.tag());
+                assert_eq!(0, el.children().len());
+                assert_eq!(1, el.attributes().len());
+                let actual_attribute = el.attributes().iter().nth(0).unwrap();
+                assert_eq!("id", actual_attribute.key());
+                assert_eq!("test", actual_attribute.value());
+            }
+            _ => panic!("Expected element but found text or comment"),
+        }
     }
 
     #[test]
-    fn test_element_with_same_line_child() {
-        let haml = "%div text";
+    fn test_single_doctype() {
+        let haml = "!!! Basic";
         let mut scanner = Scanner::new(haml);
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
         let elements = parser.parse();
-
         assert_eq!(1, elements.len());
         let actual_element = elements.iter().nth(0).unwrap();
-        assert_eq!(0, actual_element.attributes().len());
-        assert_eq!(1, actual_element.children().len());
+        match actual_element {
+            Html::Doctype(txt) => {
+                assert_eq!("Basic", txt);
+            }
+            _ => panic!("Expected doctype but found something else"),
+        }
     }
 
     #[test]
-    fn test_element_with_attributes_and_same_line_child() {
-        let haml = "%span(class=\"container\") text";
+    fn test_multiple_doctype() {
+        let haml = "!!! Basic\n!!! 5";
         let mut scanner = Scanner::new(haml);
+        
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
-        let elements = parser.parse();
 
-        assert_eq!(1, elements.len());
-        let actual_element = elements.iter().nth(0).unwrap();
-        assert_eq!(1, actual_element.attributes().len());
-        assert_eq!(1, actual_element.children().len());
+        let elements = parser.parse();
+        println!("{:?}", elements);
+        assert_eq!(2, elements.len());
+        let actual_first_element = elements.iter().nth(0).unwrap();
+        match actual_first_element {
+            Html::Doctype(txt) => {
+                assert_eq!("Basic", txt);
+            }
+            _ => panic!(format!("Expected doctype but found {:?}", actual_first_element)),
+        }
+
+        let actual_second_element = elements.iter().nth(1).unwrap();
+        match actual_second_element {
+            Html::Doctype(txt) => {
+                assert_eq!("5", txt);
+            }
+            _ => panic!(format!("Expected doctype but found {:?}", actual_second_element)),
+        }
     }
 
+
     #[test]
-    fn test_element_with_newline_child() {
-        let haml = "%div\n  %span";
+    fn test_ignore_doctype_when_not_first() {
+        let haml = "%span\n!!! Basic";
         let mut scanner = Scanner::new(haml);
+        
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
-        let elements = parser.parse();
 
+        let elements = parser.parse();
         assert_eq!(1, elements.len());
-        let actual_element = elements.iter().nth(0).unwrap();
-        assert_eq!(0, actual_element.attributes().len());
-        assert_eq!(1, actual_element.children().len());
+        let actual_first_element = elements.iter().nth(0).unwrap();
+        match actual_first_element {
+            Html::Element(el) => {
+                assert_eq!("span", el.tag());
+            }
+            _ => panic!(format!("Expected Element but found {:?}", actual_first_element)),
+        }
     }
 
     #[test]
     fn test_basic_text() {
-        let haml = "text";
+        let haml = "test";
         let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-       
-        let mut parser = Parser::new(tokens);
-        let elements = parser.parse();
 
-        assert_eq!(1, elements.len());
-        let actual_element = elements.iter().nth(0).unwrap();
-        assert_eq!(&None, actual_element.tag());
-        assert_eq!("text", actual_element.to_html());
-
-    }
-
-    #[test]
-    fn test_basic_comment() {
-        let haml = "\\ comment";
-        let mut scanner = Scanner::new(haml);
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
-        let elements = parser.parse();
-        assert_eq!(1, elements.len());
-        let actual_element = elements.iter().nth(0).unwrap();
-        assert_eq!(&None, actual_element.tag());
-        assert_eq!("<!-- comment -->", actual_element.to_html());
-    }
 
-    #[test]
-    fn test_comment_only_one_line() {
-        let haml = "\\ comment\n%span";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
-        let elements = parser.parse();
-
-        assert_eq!(2, elements.len());
-        let actual_first_element = elements.iter().nth(0).unwrap();
-        assert_eq!(&None, actual_first_element.tag());
-        assert_eq!("<!-- comment -->", actual_first_element.to_html());
-
-        let actual_second_element = elements.iter().nth(1).unwrap();
-        assert_eq!(&Some("span".to_string()), actual_second_element.tag());
-    }
-
-    #[test]
-    fn test_basic_class_div() {
-        let haml = ".container";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
         let elements = parser.parse();
         assert_eq!(1, elements.len());
 
-        let actual_element = elements.iter().nth(0).unwrap();
-        assert_eq!(&Some("div".to_string()), actual_element.tag());
-        assert_eq!(1, actual_element.attributes().len());
-        let actual_attribute = actual_element.attributes().iter().nth(0).unwrap();
-        assert_eq!("class", actual_attribute.key());
-        assert_eq!("container", actual_attribute.value());
+                let actual_first_element = elements.iter().nth(0).unwrap();
+        match actual_first_element {
+            Html::Text(txt) => {
+                assert_eq!("test", txt);
+            }
+            _ => panic!(format!("Expected text but found {:?}", actual_first_element)),
+        }
     }
 
+
     #[test]
-    fn test_basic_id_div() {
-        let haml = "#test";
+    fn test_bang_text() {
+        let haml = "test!";
         let mut scanner = Scanner::new(haml);
+
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
+
         let elements = parser.parse();
         assert_eq!(1, elements.len());
 
-        let actual_element = elements.iter().nth(0).unwrap();
-        assert_eq!(&Some("div".to_string()), actual_element.tag());
-        assert_eq!(1, actual_element.attributes().len());
-        let actual_attribute = actual_element.attributes().iter().nth(0).unwrap();
-        assert_eq!("id", actual_attribute.key());
-        assert_eq!("test", actual_attribute.value());
-    }
+                let actual_first_element = elements.iter().nth(0).unwrap();
+        match actual_first_element {
+            Html::Text(txt) => {
+                assert_eq!("test!", txt);
+            }
+            _ => panic!(format!("Expected text but found {:?}", actual_first_element)),
+        }
+    }    
 
 }

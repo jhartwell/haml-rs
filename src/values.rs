@@ -1,6 +1,6 @@
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
-    Backslash(),
+    ForwardSlash(),
     Period(),
     Equal(),
     DoubleQuote(),
@@ -18,7 +18,7 @@ pub enum Token {
 impl ToString for Token {
     fn to_string(&self) -> String {
         match self {
-            Token::Backslash() => "\\".to_string(),
+            Token::ForwardSlash() => "/".to_string(),
             Token::Period() => ".".to_string(),
             Token::Equal() => "=".to_string(),
             Token::DoubleQuote() => "\"".to_string(),
