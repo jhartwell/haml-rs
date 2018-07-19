@@ -1,174 +1,116 @@
-pub type Attributes = Vec<Attribute>;
+use std::fmt;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Attribute {
     value: String,
     key: String,
+}
+
+pub trait ToHtml {
+    fn to_html(&self) -> String;
+}
+
+#[derive(Clone, Debug)]
+pub enum Html {
+    Comment(String),
+    Text(String),
+    Doctype(String),
+    Element(HtmlElement),
+}
+
+impl ToHtml for Html {
+    fn to_html(&self) -> String {
+        match self {
+            Html::Comment(text) => format!("<!-- {} -->", text),
+            Html::Text(text) => text.to_string(),
+            Html::Element(el) => el.to_html(),
+            Html::Doctype(text) => {
+                match text.to_lowercase().as_ref() {
+                    "strict" => 
+                    "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">".to_string(),
+                    "frameset" =>
+                    "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Frameset//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd\">".to_string(),
+                    "5" =>
+                    "<!DOCTYPE html>".to_string(),
+                    "1.1" =>
+                    "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">".to_string(),
+                    "basic" =>
+                    "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML Basic 1.1//EN\" \"http://www.w3.org/TR/xhtml-basic/xhtml-basic11.dtd\">".to_string(),
+                    "mobile" =>
+                    "<!DOCTYPE html PUBLIC \"-//WAPFORUM//DTD XHTML Mobile 1.2//EN\" \"http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd\">".to_string(),
+                    _ =>
+                    "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">".to_string(),
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct HtmlElement {
+    tag: String,
+    children: Vec<Html>,
+    attributes: Vec<Attribute>,
+}
+
+impl ToHtml for HtmlElement {
+    fn to_html(&self) -> String {
+        let mut html_builder = String::new();
+        html_builder.push_str(&format!("<{}", self.tag));
+        for attribute in self.attributes() {
+            html_builder.push_str(&format!(" {}=\"{}\"", attribute.key(), attribute.value()));
+        }
+        html_builder.push('>');
+
+        for child in self.children() {
+            html_builder.push_str(&child.to_html());
+        }
+
+        html_builder.push_str(&format!("</{}>", self.tag));
+        html_builder
+    }
+}
+
+impl HtmlElement {
+    pub fn new(tag: String) -> HtmlElement {
+        HtmlElement {
+            tag,
+            children: vec![],
+            attributes: vec![],
+        }
+    }
+
+    pub fn tag(&self) -> &str {
+        &self.tag
+    }
+
+    pub fn attributes(&self) -> &Vec<Attribute> {
+        &self.attributes
+    }
+
+    pub fn children(&self) -> &Vec<Html> {
+        &self.children
+    }
+
+    pub fn add_attribute(&mut self, attribute: Attribute) {
+        self.attributes.push(attribute);
+    }
+
+    pub fn add_attributes(&mut self, attributes: &mut Vec<Attribute>) {
+        self.attributes.append(attributes);
+    }
 }
 
 impl Attribute {
     pub fn new(key: String, value: String) -> Attribute {
         Attribute { key, value }
     }
-}
 
-pub trait Html {
-    fn tag(&self) -> &Option<String>;
-    fn children(&self) -> &Option<Vec<Box<dyn Html>>>;
-    fn attributes(&self) -> &Option<Attributes>;
-
-    fn add_child(&mut self, child: Box<dyn Html>);
-    fn add_attribute(&mut self, attribute: Attribute);
-
-    fn to_html(&self) -> String {
-        let mut html_builder = String::new();
-        if let Some(tag) = self.tag() {
-            html_builder.push_str(&format!("<{}", tag));
-
-            if let Some(ref attributes) = self.attributes() {
-                for attr in attributes {
-                    html_builder.push_str(&format!(" {}=\"{}\"", attr.key, attr.value));
-                }
-            }
-            html_builder.push('>');
-
-            if let Some(ref children) = self.children() {
-                for child in children {
-                    html_builder.push_str(&child.to_html());
-                }
-            }
-            html_builder.push_str(&format!("</{}>", tag));
-        }
-        html_builder
-    }
-}
-
-pub struct Text {
-    text: String,
-}
-
-impl Html for Text {
-    fn tag(&self) -> &Option<String> {
-        &None
+    pub fn value(&self) -> &str {
+        &self.value
     }
 
-    fn to_html(&self) -> String {
-        self.text.clone()
-    }
-
-    fn children(&self) -> &Option<Vec<Box<dyn Html>>> {
-        &None
-    }
-
-    fn attributes(&self) -> &Option<Attributes> {
-        &None
-    }
-
-    fn add_attribute(&mut self, attribute: Attribute) {
-        // do nothing as text does not allow attributes
-    }
-
-    fn add_child(&mut self, child: Box<dyn Html>) {
-        // do nothing as text does not allow children
-    }
-}
-
-impl Text {
-    pub fn new(text: String) -> Text {
-        Text { text }
-    }
-}
-
-pub struct Comment {
-    text: String,
-}
-
-impl Comment {
-    pub fn new(text: String) -> Comment {
-        Comment { text }
-    }
-
-    pub fn boxed(text: String) -> Box<Comment> {
-        Box::new(Comment { text })
-    }
-}
-
-impl Html for Comment {
-    fn tag(&self) -> &Option<String> {
-        &None
-    }
-
-    fn to_html(&self) -> String {
-        self.text.clone()
-    }
-
-    fn children(&self) -> &Option<Vec<Box<dyn Html>>> {
-        &None
-    }
-
-    fn attributes(&self) -> &Option<Attributes> {
-        &None
-    }
-
-    fn add_attribute(&mut self, attribute: Attribute) {
-        // do nothing as text does not allow attributes
-    }
-
-    fn add_child(&mut self, child: Box<dyn Html>) {
-        // do nothing as text does not allow children
-    }
-}
-
-pub struct Element {
-    tag: Option<String>,
-    children: Option<Vec<Box<dyn Html>>>,
-    attributes: Option<Attributes>,
-}
-
-impl Element {
-    pub fn new(tag: String) -> Element {
-        Element {
-            tag: Some(tag),
-            children: None,
-            attributes: None,
-        }
-    }
-
-    pub fn boxed(tag: String) -> Box<Element> {
-        Box::new(Element {
-            tag: Some(tag),
-            children: None,
-            attributes: None,
-        })
-    }
-}
-
-impl Html for Element {
-    fn tag(&self) -> &Option<String> {
-        &self.tag
-    }
-
-    fn children(&self) -> &Option<Vec<Box<dyn Html>>> {
-        &self.children
-    }
-
-    fn attributes(&self) -> &Option<Attributes> {
-        &self.attributes
-    }
-
-    fn add_attribute(&mut self, attribute: Attribute) {
-        if let Some(ref mut attributes) = self.attributes {
-            attributes.push(attribute);
-        } else {
-            self.attributes = Some(vec![attribute]);
-        }
-    }
-
-    fn add_child(&mut self, child: Box<dyn Html>) {
-        if let Some(ref mut children) = self.children {
-            children.push(child);
-        } else {
-            self.children = Some(vec![child]);
-        }
+    pub fn key(&self) -> &str {
+        &self.key
     }
 }
