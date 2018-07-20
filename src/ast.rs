@@ -1,13 +1,75 @@
-use std::fmt;
+use std::collections::HashMap;
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Attribute {
-    value: String,
-    key: String,
+#[derive(Debug, Clone)]
+pub struct Attributes {
+    attributes: HashMap<String, Vec<String>>,
+}
+
+impl Attributes {
+    pub fn new() -> Attributes {
+        Attributes {
+            attributes: HashMap::new(),
+        }
+    }
+
+    pub fn add(&mut self, key: String, value: String) {
+        if let Some(attrs) = self.attributes.get_mut(&key) {
+            (*attrs).push(value);
+        } else {
+            self.attributes.insert(key, vec![value]);
+        }
+    }
+
+    pub fn contains_key(&self, key: &str) -> bool {
+        self.attributes.contains_key(key)
+    }
+
+    pub fn get(&self, key: &str) -> Option<&Vec<String>> {
+        if let Some(attr) = self.attributes.get(key) {
+            Some(attr)
+        } else {
+            None
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        self.attributes.len()
+    }
+}
+
+impl ToHtml for Attributes {
+    fn to_html(&self) -> String {
+        let mut html_builder = String::new();
+        for key in self.attributes.keys() {
+            let values = self.attributes.get(key).unwrap().join(" ");
+            html_builder.push_str(&format!(" {}=\"{}\"", key, values));
+        }
+        html_builder
+    }
 }
 
 pub trait ToHtml {
     fn to_html(&self) -> String;
+}
+
+pub struct HtmlDocument {
+    nodes: Vec<Html>,
+}
+
+impl HtmlDocument {
+    pub fn new() -> HtmlDocument {
+        HtmlDocument {
+            nodes: vec![]
+        }
+    }
+
+    pub fn nodes(&self) -> &Vec<Html> {
+        &self.nodes
+    }
+
+    pub fn nodes_mut(&mut self) -> &mut Vec<Html> {
+        &mut self.nodes
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -50,15 +112,15 @@ impl ToHtml for Html {
 pub struct HtmlElement {
     tag: String,
     children: Vec<Html>,
-    attributes: Vec<Attribute>,
+    attributes: Attributes,
 }
 
 impl ToHtml for HtmlElement {
     fn to_html(&self) -> String {
         let mut html_builder = String::new();
         html_builder.push_str(&format!("<{}", self.tag));
-        for attribute in self.attributes() {
-            html_builder.push_str(&format!(" {}=\"{}\"", attribute.key(), attribute.value()));
+        if self.attributes.size() > 0 {
+            html_builder.push_str(&self.attributes.to_html());
         }
         html_builder.push('>');
 
@@ -76,7 +138,7 @@ impl HtmlElement {
         HtmlElement {
             tag,
             children: vec![],
-            attributes: vec![],
+            attributes: Attributes::new(),
         }
     }
 
@@ -84,7 +146,7 @@ impl HtmlElement {
         &self.tag
     }
 
-    pub fn attributes(&self) -> &Vec<Attribute> {
+    pub fn attributes(&self) -> &Attributes {
         &self.attributes
     }
 
@@ -92,25 +154,11 @@ impl HtmlElement {
         &self.children
     }
 
-    pub fn add_attribute(&mut self, attribute: Attribute) {
-        self.attributes.push(attribute);
+    pub fn add_attribute(&mut self, key: String, value: String) {
+        self.attributes.add(key, value);
     }
 
-    pub fn add_attributes(&mut self, attributes: &mut Vec<Attribute>) {
-        self.attributes.append(attributes);
-    }
-}
-
-impl Attribute {
-    pub fn new(key: String, value: String) -> Attribute {
-        Attribute { key, value }
-    }
-
-    pub fn value(&self) -> &str {
-        &self.value
-    }
-
-    pub fn key(&self) -> &str {
-        &self.key
+    pub fn add_child(&mut self, child: Html) {
+        self.children.push(child);
     }
 }
