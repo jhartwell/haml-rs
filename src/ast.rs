@@ -13,10 +13,11 @@ impl Attributes {
     }
 
     pub fn add(&mut self, key: String, value: String) {
+        if self.attributes.get(&key) == None {
+            self.attributes.insert(key.clone(), vec![]);
+        }
         if let Some(attrs) = self.attributes.get_mut(&key) {
             (*attrs).push(value);
-        } else {
-            self.attributes.insert(key, vec![value]);
         }
     }
 
@@ -58,9 +59,7 @@ pub struct HtmlDocument {
 
 impl HtmlDocument {
     pub fn new() -> HtmlDocument {
-        HtmlDocument {
-            nodes: vec![]
-        }
+        HtmlDocument { nodes: vec![] }
     }
 
     pub fn nodes(&self) -> &Vec<Html> {
