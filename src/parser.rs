@@ -389,4 +389,32 @@ mod test {
             _ => panic!(format!("Expected element but found {:?}", actual_element)),
         }
     }        
+
+    #[test]
+    fn test_div_with_id_syntax_and_class() {
+        let haml = "#test.container";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        let mut parser = Parser::new(tokens);
+        let elements = parser.parse();
+
+        assert_eq!(1, elements.len());
+        let actual_element = elements.iter().nth(0).unwrap();
+        match actual_element {
+            Html::Element(el) => {
+                assert_eq!("div", el.tag());
+                assert_eq!(0, el.children().len());
+                assert_eq!(2, el.attributes().size());
+
+                let id_attrs = el.attributes().get("id").unwrap();
+                assert_eq!(1, id_attrs.len());
+                assert_eq!("test", id_attrs.join(" "));
+
+                let class_attrs = el.attributes().get("class").unwrap();
+                assert_eq!(1, class_attrs.len());
+                assert_eq!("container", class_attrs.join(" "));
+            }
+            _ => panic!(format!("Expected element but found {:?}", actual_element)),
+        }
+    }        
 }

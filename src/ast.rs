@@ -153,6 +153,10 @@ impl HtmlElement {
         &self.children
     }
 
+    pub fn children_mut(&mut self) -> &mut Vec<Html> {
+        &mut self.children
+    }
+
     pub fn add_attribute(&mut self, key: String, value: String) {
         self.attributes.add(key, value);
     }
