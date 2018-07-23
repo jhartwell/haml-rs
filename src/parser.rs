@@ -1,7 +1,8 @@
-use ast::{Html, HtmlDocument, HtmlElement};
+use ast::{Html, HtmlDocument, HtmlElement, Arena, Node, NodeId};
 use std::fmt;
 use std::slice::Iter;
 use values::Token;
+use std::rc::Rc;
 
 #[derive(Debug, PartialEq, Clone)]
 enum AttributeState {
@@ -47,17 +48,66 @@ impl fmt::Display for State {
 
 pub struct Parser<'a> {
     tokens: Iter<'a, Token>,
+    arena: Arena,
 }
+
+pub struct Parsed(Option<Html>, u32);
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
         Parser {
             tokens: tokens.iter(),
+            arena: Arena::new(),
         }
     }
 
     pub fn parse(&mut self) -> Vec<Html> {
-        self.do_parse()
+        let mut nodes = vec![];
+        let mut previous_indent = 0;
+        let mut current_index: NodeId;
+        loop {
+            match self.do_parse() {
+                Parsed(Some(html), indent) => {
+                    if indent == previous_indent {
+                        
+                    } else if indent > previous_indent {
+                        match parent {
+                            None => nodes.push(html),
+                            Some(ref mut el) => {
+                                let mut counter = indent;
+                                let mut e = Rc::new(el);
+                                while counter > 0 {
+                                    match e.children().iter().last() {
+                                       Some(cell) => match *cell.borrow() {
+                                           Html::Element(ref mut ele) => e = Rc::new(ele),
+                                           _ => break,
+                                       },
+                                       None => break,
+                                    }
+                                    counter -= 1;
+                                }
+                                Rc::get_mut(&mut e).unwrap().add_child(html);
+                            }
+                        }
+                        previous_indent = indent;
+                    } else if indent < previous_indent {
+                        if let Some(ref el) = parent {
+                            nodes.push(Html::Element(el.clone()));
+                        }
+                        parent = None;
+                        previous_indent = indent;
+                    } else {
+                    }
+                }
+                _ => {
+                    if let Some(el) = parent {
+                        nodes.push(Html::Element(el.clone()));
+                        break;
+                    }
+                }
+            }
+        }
+        nodes
     }
 
     fn next_text(&mut self) -> HtmlElement {
@@ -67,14 +117,14 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn do_parse(&mut self) -> Vec<Html> {
-        let mut nodes = vec![];
-        let mut element: Option<HtmlElement> = None;
+    fn do_parse(&mut self) -> Parsed {
+        let mut element: Option<Html> = None;
+        let mut current_indent = 0;
         loop {
             match self.tokens.next() {
                 Some(tok) => match tok {
                     Token::PercentSign() => {
-                        element = Some(self.next_text());
+                        element = Some(Html::Element(self.next_text()));
                     }
                     Token::Period() => {
                         let mut class = String::new();
@@ -83,12 +133,12 @@ impl<'a> Parser<'a> {
                             Some(Token::Text(txt)) => class = txt.to_string(),
                             _ => panic!("Expecting text value for class name"),
                         }
-                        if let Some(ref mut el) = element {
+                        if let Some(Html::Element(ref mut el)) = element {
                             el.add_attribute(key, class);
                         } else {
                             let mut el = HtmlElement::new("div".to_string());
                             el.add_attribute(key, class);
-                            element = Some(el);
+                            element = Some(Html::Element(el));
                         }
                     }
                     Token::Hashtag() => {
@@ -98,16 +148,16 @@ impl<'a> Parser<'a> {
                             Some(Token::Text(txt)) => id = txt.to_string(),
                             _ => panic!("Expecting text value for id"),
                         }
-                        if let Some(ref mut el) = element {
+                        if let Some(Html::Element(ref mut el)) = element {
                             el.add_attribute(key, id);
                         } else {
                             let mut el = HtmlElement::new("div".to_string());
                             el.add_attribute(key, id);
-                            element = Some(el);
+                            element = Some(Html::Element(el));
                         }
                     }
                     Token::OpenParen() => {
-                        if let Some(ref mut el) = element {
+                        if let Some(Html::Element(ref mut el)) = element {
                             self.parse_attributes(el);
                         } else {
                             panic!("Unexpected \"(\" while parsing");
@@ -115,21 +165,16 @@ impl<'a> Parser<'a> {
                     }
                     Token::ForwardSlash() => {
                         let comment = self.parse_comment();
-                        if let Some(ref mut el) = element {
-                            el.add_child(comment);
-                        } else {
-                            nodes.push(comment);
-                        }
+                        element = Some(comment);
                     }
+                    Token::EndLine() => break,
+                    Token::Indentation(indent) => current_indent = *indent,
                     t => panic!(format!("Unsupported feature: {:?}", t)),
                 },
                 None => break,
             }
         }
-        if let Some(el) = element {
-            nodes.push(Html::Element(el));
-        }
-        nodes
+        Parsed(element, current_indent)
     }
 
     fn parse_attributes(&mut self, element: &mut HtmlElement) {
@@ -413,6 +458,126 @@ mod test {
                 let class_attrs = el.attributes().get("class").unwrap();
                 assert_eq!(1, class_attrs.len());
                 assert_eq!("container", class_attrs.join(" "));
+            }
+            _ => panic!(format!("Expected element but found {:?}", actual_element)),
+        }
+    }    
+
+    #[test]
+    fn test_basic_children() {
+        let haml = "%span\n  %a";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        let mut parser = Parser::new(tokens);
+        let elements = parser.parse();
+
+        assert_eq!(1, elements.len());
+        let actual_element = elements.iter().nth(0).unwrap();
+        match actual_element {
+            Html::Element(el) => {
+                assert_eq!("span", el.tag());
+                assert_eq!(1, el.children().len());
+                assert_eq!(0, el.attributes().size());
+
+                let child = el.children().iter().nth(0).unwrap();
+                match child {
+                    Html::Element(c) => {
+                        assert_eq!("a", c.tag());
+                        assert_eq!(0, c.children().len());
+                        assert_eq!(0, c.attributes().size());
+                    },
+                    _ => panic!(format!("Expecting element but found {:?}", child)),
+                }
+            }
+            _ => panic!(format!("Expected element but found {:?}", actual_element)),
+        }
+    }    
+
+    #[test]
+    fn test_multiple_same_level_children() {
+        let haml = "%div\n  %a\n  %span";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        let mut parser = Parser::new(tokens);
+        let elements = parser.parse();
+
+        assert_eq!(1, elements.len());
+        let actual_element = elements.iter().nth(0).unwrap();
+        match actual_element {
+            Html::Element(el) => {
+                assert_eq!("div", el.tag());
+                assert_eq!(2, el.children().len());
+                assert_eq!(0, el.attributes().size());
+
+                let first_child = el.children().iter().nth(0).unwrap();
+                match first_child {
+                    Html::Element(c) => {
+                        assert_eq!("a", c.tag());
+                        assert_eq!(0, c.children().len());
+                        assert_eq!(0, c.attributes().size());
+                    },
+                    _ => panic!(format!("Expecting element but found {:?}", first_child)),
+                }
+
+                let second_child = el.children().iter().nth(1).unwrap();
+                match second_child {
+                    Html::Element(c) => {
+                        assert_eq!("span", c.tag());
+                        assert_eq!(0, c.children().len());
+                        assert_eq!(0, c.attributes().size());
+                    },
+                    _ => panic!(format!("Expecting element but found {:?}", second_child)),
+                }
+            }
+            _ => panic!(format!("Expected element but found {:?}", actual_element)),
+        }
+    }    
+    
+    #[test]
+    fn test_nested_children() {
+        let haml = "%div\n  %span\n    %a";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        let mut parser = Parser::new(tokens);
+        let elements = parser.parse();
+
+        assert_eq!(1, elements.len());
+        let actual_element = elements.iter().nth(0).unwrap();
+        match actual_element {
+            Html::Element(el) => {
+                assert_eq!("div", el.tag());
+                assert_eq!(1, el.children().len());
+                assert_eq!(0, el.attributes().size());
+
+                let span = el.children().iter().nth(0).unwrap();
+                match span {
+                    Html::Element(c) => {
+                        assert_eq!("span", c.tag());
+                        assert_eq!(1, c.children().len());
+                        assert_eq!(0, c.attributes().size());
+
+                        let a = c.children().iter().nth(0).unwrap();
+                        match a {
+                            Html::Element(e) => {
+                            assert_eq!("a", e.tag());
+                            assert_eq!(0, e.children().len());
+                            assert_eq!(0, e.attributes().size());
+                            },
+                            _ => panic!(format!("Expecting element but found {:?}", a)),
+                        }
+                    },
+                    _ => panic!(format!("Expecting element but found {:?}", span)),
+                }
+
+                let second_child = el.children().iter().nth(1).unwrap();
+                match second_child {
+                    Html::Element(c) => {
+                        assert_eq!("span", c.tag());
+                        assert_eq!(0, c.children().len());
+                        assert_eq!(0, c.attributes().size());
+                    },
+                    _ => panic!(format!("Expecting element but found {:?}", second_child)),
+                }
             }
             _ => panic!(format!("Expected element but found {:?}", actual_element)),
         }

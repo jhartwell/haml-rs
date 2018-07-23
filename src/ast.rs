@@ -165,3 +165,67 @@ impl HtmlElement {
         self.children.push(child);
     }
 }
+
+
+pub struct Arena {
+    nodes: Vec<Node>,
+}
+
+impl Arena {
+    pub fn new() -> Arena {
+        Arena {
+            nodes: vec![]
+        }
+    }
+
+    pub fn add_parent(&mut self, child_id: NodeId, parent_id: NodeId) {
+        self.nodes[child_id.index].parent = Some(parent_id);
+    }
+
+    pub fn add_child(&mut self, parent_id: NodeId, child_id: NodeId) {
+        match self.nodes[parent_id.index].first_child {
+            None => self.nodes[parent_id.index].first_child = Some(child_id),
+            Some(ref first_child) => {
+                match self.nodes[parent_id.index].last_child {
+                    Some(ref last_child) => {
+                        self.nodes[parent_id.index].last_child = Some(child_id);
+                        self.nodes[last_child.index].next_sibling = Some(child_id);
+                    }
+                    None => {
+
+                    }
+                }
+            }
+        }
+    }
+    
+    pub fn new_node(&mut self, data: Html) -> NodeId {
+        let next_index = self.nodes.len();
+        self.nodes.push(Node {
+            parent: None,
+            first_child: None,
+            last_child: None,
+            previous_sibling: None,
+            next_sibling: None,
+            data,
+        });
+
+        NodeId {
+            index: next_index,
+        }
+    }
+}
+
+pub struct Node {
+    parent: Option<NodeId>,
+    previous_sibling: Option<NodeId>,
+    next_sibling: Option<NodeId>,
+    first_child: Option<NodeId>,
+    last_child: Option<NodeId>,
+    data: Html,
+}
+
+#[derive(Copy, Clone)]
+pub struct NodeId {
+    index: usize,
+}
