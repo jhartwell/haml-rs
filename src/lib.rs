@@ -1,5 +1,5 @@
 mod ast;
-// mod generator;
+mod generator;
 mod parser;
 mod scanner;
 mod values;

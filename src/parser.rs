@@ -157,6 +157,7 @@ impl<'a> Parser<'a> {
                     Token::EndLine() => break,
                     Token::Indentation(indent) => current_indent = *indent,
                     Token::Whitespace() => continue,
+                    Token::Text(txt) => element = Some(Html::Text(txt.clone())),
                     t => panic!(format!("Unsupported feature: {:?}", t)),
                 },
                 None => break,
@@ -201,6 +202,7 @@ impl<'a> Parser<'a> {
             match self.tokens.next() {
                 Some(Token::EndLine()) => break,
                 Some(Token::Text(txt)) => comment_builder.push_str(txt),
+                None => break,
                 _ => continue,
             }
         }
@@ -311,5 +313,21 @@ mod test {
         assert_eq!(None, child_node2.next_sibling());
         assert_eq!(Some(child_id1), child_node2.previous_sibling());
         assert_eq!(0, child_node2.children().len());
+    }
+
+    #[test]
+    fn test_comment() {
+        let haml = "/ comment";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        let mut parser = Parser::new(tokens);
+        let arena = parser.parse();
+
+        assert_eq!(1, arena.len());
+        let node = arena.node_at(0);
+        assert_eq!(0, node.parent());
+        assert_eq!(None, node.next_sibling());
+        assert_eq!(None, node.previous_sibling());
+        assert_eq!(0, node.children().len());
     }
 }
