@@ -155,6 +155,19 @@ impl<'a> Parser<'a> {
                         element = Some(comment);
                     }
                     Token::EndLine() => break,
+                    Token::DocType() => {
+                        loop {
+                        match self.tokens.next() {
+                            Some(Token::Text(ref text)) => {
+                                element = Some(Html::Doctype(text.to_string()));
+                                break;
+                            },
+                            Some(Token::Whitespace()) => continue,
+                            Some(tok) => panic!(format!("Expecting text after doctype declaration but found {:?}", tok)),
+                            None => panic!("Expecting text after doctype declaration but found nothing"),
+                        }
+                        }
+                    },
                     Token::Indentation(indent) => current_indent = *indent,
                     Token::Whitespace() => continue,
                     Token::Text(txt) => element = Some(Html::Text(txt.clone())),
@@ -344,5 +357,25 @@ mod test {
         assert_eq!(None, node.next_sibling());
         assert_eq!(None, node.previous_sibling());
         assert_eq!(1, node.children().len());
+    }
+
+    #[test]
+    fn test_doctype() {
+        let haml = "!!! 5";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        let mut parser = Parser::new(tokens);
+        let arena = parser.parse();
+
+        assert_eq!(1, arena.len());
+        let node = arena.node_at(0);
+        assert_eq!(0, node.parent());
+        assert_eq!(None, node.next_sibling());
+        assert_eq!(None, node.previous_sibling());
+        assert_eq!(0, node.children().len());        
+        match node.data() {
+            Html::Doctype(_str) => (),
+            _ => panic!(format!("Expecting DocType but found {:?}", node.data())),
+        }
     }
 }

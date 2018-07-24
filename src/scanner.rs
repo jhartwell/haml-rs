@@ -6,7 +6,6 @@ pub struct Scanner<'a> {
     current_char: Option<char>,
     tokens: Vec<Token>,
     is_quoted: bool,
-    doctype_valid: bool,
     previous_token: Option<Token>,
 }
 
@@ -18,7 +17,6 @@ impl<'a> Scanner<'a> {
             is_quoted: false,
             current_char: None,
             previous_token: None,
-            doctype_valid: true,
         }
     }
 
@@ -149,7 +147,15 @@ impl<'a> Iterator for Scanner<'a> {
                         break;
                     }
                 }
-                Some(Token::Text(text_builder))
+                if self.is_quoted {
+                    Some(Token::Text(text_builder))
+                } else {
+                    if &text_builder == "!!!" {
+                        Some(Token::DocType())
+                    } else {
+                        Some(Token::Text(text_builder))
+                    }
+                }
             }
         };
         self.previous_token = return_value.clone();

@@ -13,6 +13,7 @@ pub enum Token {
     Hashtag(),
     Indentation(u32),
     Text(String),
+    DocType(),
 }
 
 impl ToString for Token {
@@ -31,6 +32,7 @@ impl ToString for Token {
             Token::Text(text) => text.to_string(),
             Token::EndLine() => "\n".to_string(),
             Token::Indentation(_u) => "  ".to_string(),
+            Token::DocType() => "!!!".to_string(),
         }
     }
 }
