@@ -241,7 +241,6 @@ mod test {
         
         assert_eq!(2, arena.len());
         let node = arena.node_at(0);
-        println!("{:?}", node);
         assert_eq!(0, node.parent());
         assert_eq!(None, node.next_sibling());
         assert_eq!(None, node.previous_sibling());
@@ -329,5 +328,21 @@ mod test {
         assert_eq!(None, node.next_sibling());
         assert_eq!(None, node.previous_sibling());
         assert_eq!(0, node.children().len());
+    }
+
+    #[test]
+    fn test_nested_text() {
+        let haml = "%span\n  text";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        let mut parser = Parser::new(tokens);
+        let arena = parser.parse();
+
+        assert_eq!(2, arena.len());
+        let node = arena.node_at(0);
+        assert_eq!(0, node.parent());
+        assert_eq!(None, node.next_sibling());
+        assert_eq!(None, node.previous_sibling());
+        assert_eq!(1, node.children().len());
     }
 }

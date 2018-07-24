@@ -4,21 +4,21 @@ mod parser;
 mod scanner;
 mod values;
 
-// use generator::Generator;
-// use parser::Parser;
-// use scanner::Scanner;
+use generator::Generator;
+use parser::Parser;
+use scanner::Scanner;
 
-// pub struct Haml {}
+pub struct Haml {}
 
-// impl Haml {
-//     pub fn to_html(haml: &str) -> String {
-//         let mut scanner = Scanner::new(haml);
-//         let tokens = scanner.get_tokens();
-//         let mut parser = Parser::new(tokens);
-//         let parsed_values = parser.parse();
-//         Generator::to_html(&parsed_values)
-//     }
-// }
+impl Haml {
+    pub fn to_html(haml: &str) -> String {
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        let mut parser = Parser::new(tokens);
+        let parsed_values = parser.parse();
+        Generator::to_html(&parsed_values)
+    }
+}
 
 // #[cfg(test)]
 // mod test {

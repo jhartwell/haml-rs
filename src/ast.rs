@@ -33,6 +33,10 @@ impl Attributes {
         }
     }
 
+    pub fn raw(&self) -> &HashMap<String, Vec<String>> {
+        &self.attributes
+    }
+
     pub fn size(&self) -> usize {
         self.attributes.len()
     }
@@ -216,6 +220,44 @@ impl Arena {
 
     pub fn len(&self) -> usize {
         self.nodes.len()
+    }
+
+    fn node_to_html(&self, id: usize) -> String {
+        let mut html_builder = String::new();
+        loop {
+            let node = self.node_at(id);
+            match node.data {
+                Html::Element(ref ele) => {
+                    html_builder.push_str(&format!("<{}", ele.tag()));
+                    for (key, value) in ele.attributes().raw().iter() {
+                        html_builder.push_str(&format!(" {}=\"{}\"", key, value.join(" ")));
+                    }
+                    html_builder.push('>');
+                    
+                    for child_id in node.children() {
+                        html_builder.push_str(&self.node_to_html(*child_id));
+                    }
+
+                    html_builder.push_str(&format!("</{}>", ele.tag()));
+                },
+                ref data => html_builder.push_str(&data.to_html()),
+            }
+            match node.next_sibling() {
+                Some(id) => html_builder.push_str(&self.node_to_html(id)),
+                None => break,
+            }
+        }
+        html_builder
+    }
+}
+
+impl ToHtml for Arena {
+    fn to_html(&self) -> String {
+        if self.nodes.len() > 0 {
+            self.node_to_html(0)
+        } else {
+            "".to_string()
+        }
     }
 }
 
