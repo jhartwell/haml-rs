@@ -101,16 +101,21 @@ impl<'a> Iterator for Scanner<'a> {
             '.' => Some(Token::Period()),
             ' ' => {
                 let mut return_value = Some(Token::Whitespace());
-                if Some(Token::EndLine()) == self.previous_token
-                    || Some(Token::Indentation()) == self.previous_token
-                {
-                    match self.chars.next() {
-                        Some(' ') => {
-                            return_value = Some(Token::Indentation());
+                if Some(Token::EndLine()) == self.previous_token {
+                    let mut count = 1;
+                    loop {
+                        match self.chars.next() {
+                            Some(' ') => {
+                                count += 1;
+                            }
+                            Some(c) => {
+                                self.current_char = Some(c);
+                                break;
+                            }
+                            None => break,
                         }
-                        Some(c) => self.current_char = Some(c),
-                        None => (),
                     }
+                    return_value = Some(Token::Indentation(count / 2));
                 }
                 return_value
             }
@@ -196,6 +201,11 @@ mod test {
         let haml = " ";
         let mut scanner = Scanner::new(haml);
         assert_eq!(Some(Token::Whitespace()), scanner.next());
+    }
+
+    #[test]
+    fn test_indentation() {
+        let haml = "\n  ";
     }
     #[test]
     fn test_endline() {
@@ -296,7 +306,7 @@ mod test {
         let haml = "\n  %span";
         let mut scanner = Scanner::new(haml);
         assert_eq!(Some(Token::EndLine()), scanner.next());
-        assert_eq!(Some(Token::Indentation()), scanner.next());
+        assert_eq!(Some(Token::Indentation(1)), scanner.next());
         assert_eq!(Some(Token::PercentSign()), scanner.next());
         assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
     }
@@ -306,8 +316,7 @@ mod test {
         let haml = "\n    %span";
         let mut scanner = Scanner::new(haml);
         assert_eq!(Some(Token::EndLine()), scanner.next());
-        assert_eq!(Some(Token::Indentation()), scanner.next());
-        assert_eq!(Some(Token::Indentation()), scanner.next());
+        assert_eq!(Some(Token::Indentation(2)), scanner.next());
         assert_eq!(Some(Token::PercentSign()), scanner.next());
         assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
     }
@@ -317,7 +326,7 @@ mod test {
         let haml = "\n  %span(  id=\"test\")";
         let mut scanner = Scanner::new(haml);
         assert_eq!(Some(Token::EndLine()), scanner.next());
-        assert_eq!(Some(Token::Indentation()), scanner.next());
+        assert_eq!(Some(Token::Indentation(1)), scanner.next());
         assert_eq!(Some(Token::PercentSign()), scanner.next());
         assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
         assert_eq!(Some(Token::OpenParen()), scanner.next());
@@ -349,7 +358,7 @@ mod test {
         assert_eq!(Some(Token::PercentSign()), scanner.next());
         assert_eq!(Some(Token::Text("span".to_string())), scanner.next());
         assert_eq!(Some(Token::EndLine()), scanner.next());
-        assert_eq!(Some(Token::Indentation()), scanner.next());
+        assert_eq!(Some(Token::Indentation(1)), scanner.next());
         assert_eq!(Some(Token::PercentSign()), scanner.next());
         assert_eq!(Some(Token::Text("div".to_string())), scanner.next());
         assert_eq!(None, scanner.next());

@@ -165,3 +165,87 @@ impl HtmlElement {
         self.children.push(child);
     }
 }
+
+pub struct Arena {
+    nodes: Vec<Node>,
+}
+
+impl Arena {
+    pub fn new() -> Arena {
+        Arena { nodes: vec![] }
+    }
+
+    pub fn add_child(&mut self, child_id: usize, parent_id: usize) {
+        self.nodes[parent_id].children.push(child_id);
+        self.nodes[child_id].parent = parent_id;
+    }
+
+    pub fn add_sibling(&mut self, current_id: usize, sibling_id: usize) {
+        self.nodes[current_id].next_sibling = Some(sibling_id);
+        self.nodes[sibling_id].previous_sibling = Some(current_id);
+    }
+
+    pub fn set_parent(&mut self, current_id: usize, parent_id: usize) {
+        self.nodes[current_id].parent = parent_id;
+    }
+
+    pub fn parent(&self, id: usize) -> usize {
+        if self.nodes.len() > 0 {
+            self.nodes[id].parent
+        } else {
+            0
+        }
+    }
+
+    pub fn new_node(&mut self, data: Html) -> usize {
+        let next_index = self.nodes.len();
+        self.nodes.push(Node {
+            parent: 0,
+            children: vec![],
+            previous_sibling: None,
+            next_sibling: None,
+            data,
+        });
+
+        next_index
+    }
+
+    pub fn node_at(&self, id: usize) -> &Node {
+        &self.nodes[id]
+    }
+
+    pub fn len(&self) -> usize {
+        self.nodes.len()
+    }
+}
+
+#[derive(Debug)]
+pub struct Node {
+    parent: usize,
+    previous_sibling: Option<usize>,
+    next_sibling: Option<usize>,
+    children: Vec<usize>,
+    data: Html,
+}
+
+impl Node {
+    pub fn parent(&self) -> usize {
+        self.parent
+    }
+
+    pub fn previous_sibling(&self) -> Option<usize> {
+        self.previous_sibling
+    }
+
+    pub fn next_sibling(&self) -> Option<usize> {
+        self.next_sibling
+    }
+
+    pub fn children(&self) -> &Vec<usize> {
+        &self.children
+    }
+
+    pub fn data(&self) -> &Html {
+        &self.data
+    }
+}
