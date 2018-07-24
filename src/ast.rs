@@ -166,66 +166,86 @@ impl HtmlElement {
     }
 }
 
-
 pub struct Arena {
     nodes: Vec<Node>,
 }
 
 impl Arena {
     pub fn new() -> Arena {
-        Arena {
-            nodes: vec![]
+        Arena { nodes: vec![] }
+    }
+
+    pub fn add_child(&mut self, child_id: usize, parent_id: usize) {
+        self.nodes[parent_id].children.push(child_id);
+        self.nodes[child_id].parent = parent_id;
+    }
+
+    pub fn add_sibling(&mut self, current_id: usize, sibling_id: usize) {
+        self.nodes[current_id].next_sibling = Some(sibling_id);
+        self.nodes[sibling_id].previous_sibling = Some(current_id);
+    }
+
+    pub fn set_parent(&mut self, current_id: usize, parent_id: usize) {
+        self.nodes[current_id].parent = parent_id;
+    }
+
+    pub fn parent(&self, id: usize) -> usize {
+        if self.nodes.len() > 0 {
+            self.nodes[id].parent
+        } else {
+            0
         }
     }
 
-    pub fn add_parent(&mut self, child_id: NodeId, parent_id: NodeId) {
-        self.nodes[child_id.index].parent = Some(parent_id);
-    }
-
-    pub fn add_child(&mut self, parent_id: NodeId, child_id: NodeId) {
-        match self.nodes[parent_id.index].first_child {
-            None => self.nodes[parent_id.index].first_child = Some(child_id),
-            Some(ref first_child) => {
-                match self.nodes[parent_id.index].last_child {
-                    Some(ref last_child) => {
-                        self.nodes[parent_id.index].last_child = Some(child_id);
-                        self.nodes[last_child.index].next_sibling = Some(child_id);
-                    }
-                    None => {
-
-                    }
-                }
-            }
-        }
-    }
-    
-    pub fn new_node(&mut self, data: Html) -> NodeId {
+    pub fn new_node(&mut self, data: Html) -> usize {
         let next_index = self.nodes.len();
         self.nodes.push(Node {
-            parent: None,
-            first_child: None,
-            last_child: None,
+            parent: 0,
+            children: vec![],
             previous_sibling: None,
             next_sibling: None,
             data,
         });
 
-        NodeId {
-            index: next_index,
-        }
+        next_index
+    }
+
+    pub fn node_at(&self, id: usize) -> &Node {
+        &self.nodes[id]
+    }
+
+    pub fn len(&self) -> usize {
+        self.nodes.len()
     }
 }
 
+#[derive(Debug)]
 pub struct Node {
-    parent: Option<NodeId>,
-    previous_sibling: Option<NodeId>,
-    next_sibling: Option<NodeId>,
-    first_child: Option<NodeId>,
-    last_child: Option<NodeId>,
+    parent: usize,
+    previous_sibling: Option<usize>,
+    next_sibling: Option<usize>,
+    children: Vec<usize>,
     data: Html,
 }
 
-#[derive(Copy, Clone)]
-pub struct NodeId {
-    index: usize,
+impl Node {
+    pub fn parent(&self) -> usize {
+        self.parent
+    }
+
+    pub fn previous_sibling(&self) -> Option<usize> {
+        self.previous_sibling
+    }
+
+    pub fn next_sibling(&self) -> Option<usize> {
+        self.next_sibling
+    }
+
+    pub fn children(&self) -> &Vec<usize> {
+        &self.children
+    }
+
+    pub fn data(&self) -> &Html {
+        &self.data
+    }
 }
