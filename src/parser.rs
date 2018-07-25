@@ -155,7 +155,8 @@ impl<'a> Parser<'a> {
                     Token::ForwardSlash() => {
                         let comment = self.parse_comment();
                         element = Some(comment);
-                    }
+                    },
+                    Token::CarriageReturn() => continue,
                     Token::EndLine() => break,
                     Token::DocType() => loop {
                         match self.tokens.next() {

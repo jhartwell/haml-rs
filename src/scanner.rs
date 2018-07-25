@@ -49,6 +49,7 @@ impl<'a> Iterator for Scanner<'a> {
         }
         let return_value = match current_char {
             '\n' => Some(Token::EndLine()),
+            '\r' => Some(Token::CarriageReturn()),
             '(' => Some(Token::OpenParen()),
             ')' => Some(Token::CloseParen()),
             '"' => {
