@@ -3,8 +3,7 @@ mod common;
 
 use haml::Haml;
 
-
-fn test(input_file: &str, expected_output_file: &str ) {
+fn test(input_file: &str, expected_output_file: &str) {
     let haml = &common::read_file(input_file);
     let html = common::read_file(expected_output_file);
     let actual_html = Haml::to_html(haml);
@@ -15,7 +14,6 @@ fn test(input_file: &str, expected_output_file: &str ) {
 fn test_basic_haml() {
     test("tests/inputs/basic.haml", "tests/outputs/basic.html");
 }
-
 
 #[test]
 fn test_custom_elements() {

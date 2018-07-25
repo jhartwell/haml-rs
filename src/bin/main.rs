@@ -1,9 +1,9 @@
 extern crate haml;
+use haml::Haml;
 use std::env;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
-use haml::Haml;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -20,11 +20,12 @@ fn main() {
     }
 }
 
-
 fn read_input(file_name: &str) -> String {
     let mut input_fs = File::open(file_name).expect("Input file not found.");
     let mut contents = String::new();
-    input_fs.read_to_string(&mut contents).expect("Could not successfully load input file.");
+    input_fs
+        .read_to_string(&mut contents)
+        .expect("Could not successfully load input file.");
     contents
 }
 

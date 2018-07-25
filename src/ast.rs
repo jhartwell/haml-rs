@@ -236,15 +236,15 @@ impl Arena {
                 html_builder.push_str(">\n");
 
                 for child_id in node.children() {
-                    html_builder.push_str(&format!("{}",self.node_to_html(*child_id)));
+                    html_builder.push_str(&format!("{}", self.node_to_html(*child_id)));
                 }
 
                 html_builder.push_str(&format!("</{}>\n", ele.tag()));
             }
-            ref data => html_builder.push_str(&format!("{}\n",data.to_html())),
+            ref data => html_builder.push_str(&format!("{}\n", data.to_html())),
         }
         if let Some(sibling_id) = node.next_sibling() {
-            html_builder.push_str(&format!("{}",self.node_to_html(sibling_id)));
+            html_builder.push_str(&format!("{}", self.node_to_html(sibling_id)));
         }
 
         html_builder
