@@ -2,12 +2,19 @@
 
 This is a library and CLI for parsing [Haml](http://haml.info/) templates. You are able to get Haml-rs on [Crates.io](https://crates.io/crates/hamlrs). The aim for this is to produce identical HTML to what the Ruby [Haml gem](https://rubygems.org/gems/haml) produces.
 
-### Stability
+## Usage
 
-This software is in its early stages and as such there may be issues with stability. While the public interface is unlikely to change from the library perspective (Haml::to_html(&str) is pretty straightforward) there will be changes behind the scenes.
+To include haml-rs in your project add the following to your Cargo.toml:
 
-If you find any bugs please don't hesitate to open an [issue](https://github.com/jhartwell/haml-rs/issues) on github or, if you want, you can reach out directly to me at jon@dontbreakthebuild.com
+```
+[dependencies]
+hamlrs = "0.1.0"
+```
+Then add the following to your code:
 
+```rust
+extern crate haml;
+```
 ## Example
 
 #### Library
@@ -25,6 +32,13 @@ fn main() {
 #### CLI
 
 `hamlrs input.haml output.html`
+
+
+### Stability
+
+This software is in its early stages and as such there may be issues with stability. While the public interface is unlikely to change from the library perspective (Haml::to_html(&str) is pretty straightforward) there will be changes behind the scenes.
+
+If you find any bugs please don't hesitate to open an [issue](https://github.com/jhartwell/haml-rs/issues) on github or, if you want, you can reach out directly to me at jon@dontbreakthebuild.com
 
 
 ## Integration tests
