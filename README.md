@@ -1,5 +1,52 @@
 # Haml-rs
 
-This aims to be a library and CLI application that can parse [Haml](http://haml.info).
+This is a library and CLI for parsing [Haml](http://haml.info/) templates. You are able to get Haml-rs on [Crates.io](https://crates.io/crates/hamlrs).
 
-Note that this is very early stage software and does not even work fully yet (though we are getting close). Once we are able to actually generate HTML from basic Haml I will increment to version 0.1.0 but until then this isn't even ready for that. Once we hit 0.1.0 then I will publish to crates.io as well but there is no point in putting up code that doesn't work.
+### Stability
+
+This software is in its early stages and as such there may be issues with stability. While the public interface is unlikely to change from the library perspective (Haml::to_html(&str) is pretty straightforward) there will be changes behind the scenes.
+
+## Example
+
+#### Library
+```rust
+extern crate haml;
+
+use haml::Haml;
+
+fn main() {
+    let test_haml = "%span";
+    let html = Haml::to_html(&test_haml);
+}
+```
+
+#### CLI
+
+`hamlrs input.haml output.html`
+
+## Current limitations
+
+There are a few limitations in this version of haml-rs. 
+
+  * No variable support
+  * Must use HTML syntax for attributes rather than Ruby syntax (so "()" instead of "{}")
+
+
+## Roadmap
+
+These are things that are on the roadmap for this project:
+
+  * Documentation
+  * Add variable support
+  * Support ruby attributes
+  * Add more tests
+  * Improve performance (there are areas that are copying when they may not need to)
+
+
+## License
+
+This project is licensed under the [MIT license](https://github.com/jhartwell/haml-rs/blob/master/LICENSE).
+
+##Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in Tokio by you, shall be licensed as MIT, without any additional terms or conditions.

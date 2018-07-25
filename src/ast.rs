@@ -224,29 +224,29 @@ impl Arena {
 
     fn node_to_html(&self, id: usize) -> String {
         let mut html_builder = String::new();
-        loop {
-            let node = self.node_at(id);
-            match node.data {
-                Html::Element(ref ele) => {
-                    html_builder.push_str(&format!("<{}", ele.tag()));
-                    for (key, value) in ele.attributes().raw().iter() {
-                        html_builder.push_str(&format!(" {}=\"{}\"", key, value.join(" ")));
-                    }
-                    html_builder.push('>');
-                    
-                    for child_id in node.children() {
-                        html_builder.push_str(&self.node_to_html(*child_id));
-                    }
+        let mut current_id = id;
 
-                    html_builder.push_str(&format!("</{}>", ele.tag()));
-                },
-                ref data => html_builder.push_str(&data.to_html()),
+        let mut node = self.node_at(current_id);
+        match node.data {
+            Html::Element(ref ele) => {
+                html_builder.push_str(&format!("<{}", ele.tag()));
+                for (key, value) in ele.attributes().raw().iter() {
+                    html_builder.push_str(&format!(" {}=\"{}\"", key, value.join(" ")));
+                }
+                html_builder.push_str(">\n");
+
+                for child_id in node.children() {
+                    html_builder.push_str(&format!("{}",self.node_to_html(*child_id)));
+                }
+
+                html_builder.push_str(&format!("</{}>\n", ele.tag()));
             }
-            match node.next_sibling() {
-                Some(id) => html_builder.push_str(&self.node_to_html(id)),
-                None => break,
-            }
+            ref data => html_builder.push_str(&format!("{}\n",data.to_html())),
         }
+        if let Some(sibling_id) = node.next_sibling() {
+            html_builder.push_str(&format!("{}",self.node_to_html(sibling_id)));
+        }
+
         html_builder
     }
 }

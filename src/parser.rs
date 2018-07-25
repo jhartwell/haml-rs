@@ -64,21 +64,23 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> &Arena {
         let mut previous_indent = 0;
         let mut current_index: usize = 0;
+        let mut root_node = true;
         loop {
             match self.do_parse() {
                 Parsed(Some(html), indent) => {
                     if indent == previous_indent {
-                        let parent_id = self.arena.parent(current_index);
-                        if parent_id != current_index {
+                        if !root_node {
+                            let parent_id = self.arena.parent(current_index);
                             let sibling_id = self.arena.new_node(html);
                             self.arena.add_sibling(current_index, sibling_id);
                             self.arena.add_child(sibling_id, parent_id);
                             current_index = sibling_id;
                         } else {
+                            root_node = false;
                             current_index = self.arena.new_node(html);
                         }
-                    } else if indent > previous_indent {    
-                        let child_id = self.arena.new_node(html);                   
+                    } else if indent > previous_indent {
+                        let child_id = self.arena.new_node(html);
                         self.arena.add_child(child_id, current_index);
                         current_index = child_id;
                         previous_indent = indent;
@@ -155,17 +157,16 @@ impl<'a> Parser<'a> {
                         element = Some(comment);
                     }
                     Token::EndLine() => break,
-                    Token::DocType() => {
-                        loop {
+                    Token::DocType() => loop {
                         match self.tokens.next() {
                             Some(Token::Text(ref text)) => {
                                 element = Some(Html::Doctype(text.to_string()));
                                 break;
-                            },
+                            }
                             Some(Token::Whitespace()) => continue,
-                            Some(tok) => panic!(format!("Expecting text after doctype declaration but found {:?}", tok)),
-                            None => panic!("Expecting text after doctype declaration but found nothing"),
-                        }
+                            Some(Token::EndLine()) => break,
+                            None => break,
+                            Some(tok) => panic!(format!("Expecting Text but found {:?}", tok)),
                         }
                     },
                     Token::Indentation(indent) => current_indent = *indent,
@@ -251,7 +252,7 @@ mod test {
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
         let arena = parser.parse();
-        
+
         assert_eq!(2, arena.len());
         let node = arena.node_at(0);
         assert_eq!(0, node.parent());
@@ -372,7 +373,7 @@ mod test {
         assert_eq!(0, node.parent());
         assert_eq!(None, node.next_sibling());
         assert_eq!(None, node.previous_sibling());
-        assert_eq!(0, node.children().len());        
+        assert_eq!(0, node.children().len());
         match node.data() {
             Html::Doctype(_str) => (),
             _ => panic!(format!("Expecting DocType but found {:?}", node.data())),
