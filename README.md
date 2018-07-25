@@ -52,7 +52,7 @@ These are things that are on the roadmap for this project:
 
 This project is licensed under the [MIT license](https://github.com/jhartwell/haml-rs/blob/master/LICENSE).
 
-##Contribution
+## Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in Haml-rs by you, shall be licensed as MIT, without any additional terms or conditions.
 
