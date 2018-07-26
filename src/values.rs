@@ -30,6 +30,7 @@ impl Token {
             '@' => true,
             '#' => true,
             '\n' => true,
+            '\r' => true,
             _ => false,
         }
     }

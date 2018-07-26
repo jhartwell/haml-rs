@@ -187,15 +187,15 @@ impl Arena {
                 for (key, value) in ele.attributes().raw().iter() {
                     html_builder.push_str(&format!(" {}=\"{}\"", key, value.join(" ")));
                 }
-                html_builder.push_str(">\n");
+                html_builder.push_str(&format!(">{}", newline()));
 
                 for child_id in node.children() {
                     html_builder.push_str(&format!("{}", self.node_to_html(*child_id)));
                 }
 
-                html_builder.push_str(&format!("</{}>\n", ele.tag()));
+                html_builder.push_str(&format!("</{}>{}", ele.tag(), newline()));
             }
-            ref data => html_builder.push_str(&format!("{}\n", data.to_html())),
+            ref data => html_builder.push_str(&format!("{}{}", data.to_html(),newline())),
         }
         if let Some(sibling_id) = node.next_sibling() {
             html_builder.push_str(&format!("{}", self.node_to_html(sibling_id)));
@@ -232,4 +232,15 @@ impl Node {
     pub fn children(&self) -> &Vec<usize> {
         &self.children
     }
+}
+
+
+#[cfg(target_os = "windows")]
+fn newline() -> &'static str {
+    "\r\n"
+}
+
+#[cfg(not(target_os = "windows"))]
+fn newlinew() -> &'static str {
+    "\n"
 }
