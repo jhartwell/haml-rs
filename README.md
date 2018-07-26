@@ -1,10 +1,6 @@
 # Haml-rs
 
-[![Crates.io](https://img.shields.io/crates/v/hamlrs.svg)](https://crates.io/crates/hamlrs)
-
-![Travis CI Build Status](https://travis-ci.org/jhartwell/haml-rs.svg?branch=master)
-
-[![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/fyxb0eq5n9aje8l4?svg=true)](https://ci.appveyor.com/project/jhartwell/haml-rs)
+[![](https://img.shields.io/crates/v/hamlrs.svg?maxAge=25920)](https://crates.io/crates/hamlrs) ![Travis CI Build Status](https://travis-ci.org/jhartwell/haml-rs.svg?branch=master) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/fyxb0eq5n9aje8l4?svg=true)](https://ci.appveyor.com/project/jhartwell/haml-rs)
 
 This is a library and CLI for parsing [Haml](http://haml.info/) templates. You are able to get Haml-rs on [Crates.io](https://crates.io/crates/hamlrs). The aim for this is to produce identical HTML to what the Ruby [Haml gem](https://rubygems.org/gems/haml) produces.
 
