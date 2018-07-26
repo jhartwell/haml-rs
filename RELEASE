@@ -1,3 +1,21 @@
+Version 0.2.0
+-------
+Breaking Changes:
+    Public:
+        * The Haml struct has been removed from the haml module. Instead of exporting the struct there is now just the to_html function
+        that is exported
+    Private:
+        * The Generator struct from the generator module has been removed. Instead of exporting the struct there is now just the to_html function
+        that is exported
+Bug Fixes:
+    * Fixed Windows support and tested on Windows machine.
+Features:
+    * Added platform dependent newline support. On Windows machines, the HTML will generate with CRLF and on non-Windows machines
+    the newline will be a LF.
+    
+Version 0.1.2
+-------
+README update to ensure that crates.io was properly updated
 Version 0.1.1
 -------
 Bug Fixes:

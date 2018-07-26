@@ -10,7 +10,7 @@ To include haml-rs in your project add the following to your Cargo.toml:
 
 ```
 [dependencies]
-hamlrs = "0.1.2"
+hamlrs = "0.2.0"
 ```
 Then add the following to your code:
 
