@@ -1,0 +1,5 @@
+Version 0.1.1
+-------
+Bug Fixes:
+    * Fixed issue with hamlrs not properly handling carriage returns in Windows.
+    
