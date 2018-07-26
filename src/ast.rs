@@ -1,3 +1,4 @@
+use common;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -187,15 +188,15 @@ impl Arena {
                 for (key, value) in ele.attributes().raw().iter() {
                     html_builder.push_str(&format!(" {}=\"{}\"", key, value.join(" ")));
                 }
-                html_builder.push_str(&format!(">{}", newline()));
+                html_builder.push_str(&format!(">{}", common::newline()));
 
                 for child_id in node.children() {
                     html_builder.push_str(&format!("{}", self.node_to_html(*child_id)));
                 }
 
-                html_builder.push_str(&format!("</{}>{}", ele.tag(), newline()));
+                html_builder.push_str(&format!("</{}>{}", ele.tag(), common::newline()));
             }
-            ref data => html_builder.push_str(&format!("{}{}", data.to_html(), newline())),
+            ref data => html_builder.push_str(&format!("{}{}", data.to_html(), common::newline())),
         }
         if let Some(sibling_id) = node.next_sibling() {
             html_builder.push_str(&format!("{}", self.node_to_html(sibling_id)));
@@ -232,14 +233,4 @@ impl Node {
     pub fn children(&self) -> &Vec<usize> {
         &self.children
     }
-}
-
-#[cfg(target_os = "windows")]
-fn newline() -> &'static str {
-    "\r\n"
-}
-
-#[cfg(not(target_os = "windows"))]
-fn newlinew() -> &'static str {
-    "\n"
 }

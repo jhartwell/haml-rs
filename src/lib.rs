@@ -1,4 +1,5 @@
 mod ast;
+mod common;
 mod generator;
 mod parser;
 mod scanner;
