@@ -49,6 +49,16 @@ impl<'a> Iterator for Scanner<'a> {
         }
         let return_value = match current_char {
             '\n' => Some(Token::EndLine()),
+            '\r' => {
+                match self.chars.next() {
+                    Some('\n') => Some(Token::EndLine()),
+                    Some(ch) => {
+                        self.current_char = Some(ch);
+                        self.next()
+                    }
+                    None => None
+                }
+            },
             '(' => Some(Token::OpenParen()),
             ')' => Some(Token::CloseParen()),
             '"' => {
@@ -219,6 +229,14 @@ mod test {
         let mut scanner = Scanner::new(haml);
         assert_eq!(Some(Token::EndLine()), scanner.next());
     }
+
+    #[test]
+    fn test_windows_endline() {
+        let haml = "\r\n";
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::EndLine()), scanner.next());
+    }
+
     #[test]
     fn test_percent_sign() {
         let haml = "%";

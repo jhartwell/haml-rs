@@ -14,6 +14,7 @@ pub enum Token {
     Indentation(u32),
     Text(String),
     DocType(),
+    CarriageReturn(),
 }
 
 impl ToString for Token {
@@ -33,6 +34,7 @@ impl ToString for Token {
             Token::EndLine() => "\n".to_string(),
             Token::Indentation(_u) => "  ".to_string(),
             Token::DocType() => "!!!".to_string(),
+            Token::CarriageReturn() => "\r".to_string(),
         }
     }
 }
