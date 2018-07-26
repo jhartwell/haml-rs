@@ -7,6 +7,15 @@ mod values;
 use parser::Parser;
 use scanner::Scanner;
 
+/// Converts the Haml that is contained in a reference string
+/// into an owned string. 
+/// 
+/// ## Example
+/// 
+/// ```rust
+/// use haml;
+/// let html: String = haml::to_html("%span");
+/// ```
 pub fn to_html(haml: &str) -> String {
     let mut scanner = Scanner::new(haml);
     let tokens = scanner.get_tokens();

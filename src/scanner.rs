@@ -10,6 +10,8 @@ pub struct Scanner<'a> {
 }
 
 impl<'a> Scanner<'a> {
+
+    /// Constructs a new Scanner<'a>
     pub fn new(raw_haml: &'a str) -> Scanner<'a> {
         Scanner {
             chars: raw_haml.chars(),
@@ -20,6 +22,9 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    /// Gets the tokens from the Haml that was passed in when the instance
+    /// of Scanner was created. This will contain a reference to the tokens
+    /// stored in the Scanner struct.
     pub fn get_tokens(&mut self) -> &Vec<Token> {
         loop {
             if let Some(token) = self.next() {
