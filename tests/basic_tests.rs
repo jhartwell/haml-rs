@@ -1,12 +1,10 @@
 extern crate haml;
 mod common;
 
-use haml::Haml;
-
 fn test(input_file: &str, expected_output_file: &str) {
     let haml = &common::read_file(input_file);
     let html = common::read_file(expected_output_file);
-    let actual_html = Haml::to_html(haml);
+    let actual_html = haml::to_html(haml);
     assert_eq!(html, actual_html);
 }
 
