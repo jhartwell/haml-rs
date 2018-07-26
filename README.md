@@ -1,6 +1,6 @@
 # Haml-rs
 
-[![Crates.io](https://img.shields.io/crates/v/rustc-serialize.svg)](https://github.com/jhartwell/haml-rs)
+[![Crates.io](https://img.shields.io/crates/v/hamlrs.svg)](https://crates.io/crates/hamlrs)
 
 ![Travis CI Build Status](https://travis-ci.org/jhartwell/haml-rs.svg?branch=master)
 
