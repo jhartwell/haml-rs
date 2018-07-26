@@ -1,5 +1,7 @@
 # Haml-rs
 
+[![Crates.io](https://img.shields.io/crates/v/rustc-serialize.svg)](https://github.com/jhartwell/haml-rs)
+
 ![Travis CI Build Status](https://travis-ci.org/jhartwell/haml-rs.svg?branch=master)
 
 This is a library and CLI for parsing [Haml](http://haml.info/) templates. You are able to get Haml-rs on [Crates.io](https://crates.io/crates/hamlrs). The aim for this is to produce identical HTML to what the Ruby [Haml gem](https://rubygems.org/gems/haml) produces.
