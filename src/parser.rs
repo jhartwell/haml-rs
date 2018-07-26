@@ -193,11 +193,8 @@ mod test {
         let mut parser = Parser::new(tokens);
         let arena = parser.parse();
 
-        assert_eq!(1, arena.len());
         let node = arena.node_at(0);
-        assert_eq!(0, node.parent());
         assert_eq!(None, node.next_sibling());
-        assert_eq!(None, node.previous_sibling());
         assert_eq!(0, node.children().len());
     }
 
@@ -209,18 +206,13 @@ mod test {
         let mut parser = Parser::new(tokens);
         let arena = parser.parse();
 
-        assert_eq!(2, arena.len());
         let node = arena.node_at(0);
-        assert_eq!(0, node.parent());
         assert_eq!(None, node.next_sibling());
-        assert_eq!(None, node.previous_sibling());
         assert_eq!(1, node.children().len());
 
         let child_id = node.children().iter().nth(0).unwrap();
         let child_node = arena.node_at(*child_id);
-        assert_eq!(0, child_node.parent());
         assert_eq!(None, child_node.next_sibling());
-        assert_eq!(None, child_node.previous_sibling());
         assert_eq!(0, child_node.children().len());
     }
 
@@ -232,25 +224,18 @@ mod test {
         let mut parser = Parser::new(tokens);
         let arena = parser.parse();
 
-        assert_eq!(3, arena.len());
         let node = arena.node_at(0);
-        assert_eq!(0, node.parent());
         assert_eq!(None, node.next_sibling());
-        assert_eq!(None, node.previous_sibling());
         assert_eq!(1, node.children().len());
 
         let child_id = *node.children().iter().nth(0).unwrap();
         let child_node = arena.node_at(child_id);
-        assert_eq!(0, child_node.parent());
         assert_eq!(None, child_node.next_sibling());
-        assert_eq!(None, child_node.previous_sibling());
         assert_eq!(1, child_node.children().len());
 
         let grandchild_id = *child_node.children().iter().nth(0).unwrap();
         let grandchild_node = arena.node_at(grandchild_id);
-        assert_eq!(child_id, grandchild_node.parent());
         assert_eq!(None, grandchild_node.next_sibling());
-        assert_eq!(None, grandchild_node.previous_sibling());
         assert_eq!(0, grandchild_node.children().len());
     }
 
@@ -262,25 +247,18 @@ mod test {
         let mut parser = Parser::new(tokens);
         let arena = parser.parse();
 
-        assert_eq!(3, arena.len());
         let node = arena.node_at(0);
-        assert_eq!(0, node.parent());
         assert_eq!(None, node.next_sibling());
-        assert_eq!(None, node.previous_sibling());
         assert_eq!(2, node.children().len());
 
         let child_id1 = *node.children().iter().nth(0).unwrap();
         let child_node1 = arena.node_at(child_id1);
-        assert_eq!(0, child_node1.parent());
         assert_eq!(Some(2), child_node1.next_sibling());
-        assert_eq!(None, child_node1.previous_sibling());
         assert_eq!(0, child_node1.children().len());
 
         let child_id2 = child_node1.next_sibling().unwrap();
         let child_node2 = arena.node_at(child_id2);
-        assert_eq!(0, child_node2.parent());
         assert_eq!(None, child_node2.next_sibling());
-        assert_eq!(Some(child_id1), child_node2.previous_sibling());
         assert_eq!(0, child_node2.children().len());
     }
 
@@ -292,11 +270,8 @@ mod test {
         let mut parser = Parser::new(tokens);
         let arena = parser.parse();
 
-        assert_eq!(1, arena.len());
         let node = arena.node_at(0);
-        assert_eq!(0, node.parent());
         assert_eq!(None, node.next_sibling());
-        assert_eq!(None, node.previous_sibling());
         assert_eq!(0, node.children().len());
     }
 
@@ -308,11 +283,8 @@ mod test {
         let mut parser = Parser::new(tokens);
         let arena = parser.parse();
 
-        assert_eq!(2, arena.len());
         let node = arena.node_at(0);
-        assert_eq!(0, node.parent());
         assert_eq!(None, node.next_sibling());
-        assert_eq!(None, node.previous_sibling());
         assert_eq!(1, node.children().len());
     }
 
@@ -324,15 +296,8 @@ mod test {
         let mut parser = Parser::new(tokens);
         let arena = parser.parse();
 
-        assert_eq!(1, arena.len());
         let node = arena.node_at(0);
-        assert_eq!(0, node.parent());
         assert_eq!(None, node.next_sibling());
-        assert_eq!(None, node.previous_sibling());
         assert_eq!(0, node.children().len());
-        match node.data() {
-            Html::Doctype(_str) => (),
-            _ => panic!(format!("Expecting DocType but found {:?}", node.data())),
-        }
     }
 }

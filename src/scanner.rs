@@ -220,7 +220,19 @@ mod test {
     #[test]
     fn test_indentation() {
         let haml = "\n  ";
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::EndLine()), scanner.next());
+        assert_eq!(Some(Token::Indentation(1)), scanner.next());
     }
+
+    #[test]
+    fn test_multiple_indentation() {
+        let haml = "\n      ";
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::EndLine()), scanner.next());
+        assert_eq!(Some(Token::Indentation(3)), scanner.next());
+    }
+
     #[test]
     fn test_endline() {
         let haml = "\n";

@@ -1,9 +1,10 @@
 extern crate haml;
-use haml::Haml;
+
 use std::env;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
+
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -11,7 +12,7 @@ fn main() {
         let input_file = &args[1];
         let output_file = &args[2];
         let haml = read_input(input_file);
-        let html = Haml::to_html(&haml);
+        let html = haml::to_html(&haml);
         if let Err(err) = write_file(output_file, &html) {
             println!("Error writing output: {:?}", err);
         }
