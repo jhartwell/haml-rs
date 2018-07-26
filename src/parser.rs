@@ -128,6 +128,13 @@ impl<'a> Parser<'a> {
                     Token::Indentation(indent) => current_indent = *indent,
                     Token::Whitespace() => continue,
                     Token::Text(txt) => element = Some(Html::Text(txt.clone())),
+                    Token::OpenCurlyBrace() => {
+                        if let Some(Html::Element(ref mut el)) = element {
+                            self.parse_ruby_attributes(el);
+                        } else {
+                            panic!("Unexpected \"{\" while parsing");
+                        }
+                    }
                     t => panic!(format!("Unsupported feature: {:?}", t)),
                 },
                 None => break,
@@ -136,6 +143,56 @@ impl<'a> Parser<'a> {
         Parsed(element, current_indent)
     }
 
+    fn parse_ruby_attributes(&mut self, element: &mut HtmlElement) {
+        let mut id = "";
+        loop {
+            match self.tokens.next() {
+                Some(tok) => {println!("{:?}", tok); match tok {
+                    Token::ClosedCurlyBrace() => break,
+                    Token::Colon() => {
+                        match self.tokens.next() {
+                            Some(Token::Text(ref text)) => id = text,
+                            Some(tok) => panic!(format!("Expected an identifier after a colon when parsing attributes but found {:?}", tok)),
+                            None => panic!("Unexpected end of file when parsing attributes"),
+                        }
+                    }
+                    Token::Arrow() => {
+                        loop {
+                            match self.tokens.next() {
+                                Some(Token::Whitespace()) => continue,
+                                Some(Token::Text(ref value)) => {
+                                    match id {
+                                        "" => panic!("Found a value for an attribute but no attribute id."),
+                                        i => element.add_attribute(i.to_string(), value.to_string()),
+                                    }
+                                    break;
+                                },
+                                Some(Token::OpenBrace()) => {
+                                    loop {
+                                        match self.tokens.next() {
+                                            Some(Token::Text(ref text)) => element.add_attribute(id.to_string(), text.to_string()),
+                                            Some(Token::Whitespace()) => continue,
+                                            Some(Token::Comma()) => continue,
+                                            Some(Token::ClosedBrace()) => break,
+                                            Some(tok) => panic!(format!("Unexpected token {:?} in attribute array.", tok )),
+                                            None => panic!("Ran out of tokens while parsing attributes"),
+                                        }
+                                    }
+                                    break;
+                                }
+                                Some(tok) => panic!(format!("Expecting value after attribute id in attributes but found {:?}", tok)),
+                                None => panic!("Expecting value after \"=>\""),
+                            }
+                        }
+                    }
+                    Token::Comma() => id = "",
+                    Token::Text(ref text) => id = text,
+                    _ => continue,
+                }},
+                None => break,
+            }
+        }
+    }
     fn parse_attributes(&mut self, element: &mut HtmlElement) {
         let mut at_id = true;
         let mut id = "";
@@ -294,6 +351,47 @@ mod test {
         let mut scanner = Scanner::new(haml);
         let tokens = scanner.get_tokens();
         let mut parser = Parser::new(tokens);
+        let arena = parser.parse();
+
+        let node = arena.node_at(0);
+        assert_eq!(None, node.next_sibling());
+        assert_eq!(0, node.children().len());
+    }
+
+    #[test]
+    fn test_ruby_attribute() {
+        let haml = "%span{:id => \"test\"}";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        let mut parser = Parser::new(tokens);
+        let arena = parser.parse();
+
+        let node = arena.node_at(0);
+        assert_eq!(None, node.next_sibling());
+        assert_eq!(0, node.children().len());
+    }
+
+    #[test]
+    fn test_ruby_attributes() {
+        let haml = "%span{:id => \"test\", :class => \"container\"}";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        let mut parser = Parser::new(tokens);
+        let arena = parser.parse();
+
+        let node = arena.node_at(0);
+        assert_eq!(None, node.next_sibling());
+        assert_eq!(0, node.children().len());
+    }
+
+    #[test]
+    fn test_ruby_attributes_with_array() {
+        let haml = "%span{:id => \"test\", :class => [\"container\", \"box\"]}";
+        let mut scanner = Scanner::new(haml);
+        let tokens = scanner.get_tokens();
+        println!("{:?}", tokens);
+        let mut parser = Parser::new(tokens);
+
         let arena = parser.parse();
 
         let node = arena.node_at(0);

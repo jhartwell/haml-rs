@@ -186,7 +186,7 @@ impl Arena {
             Html::Element(ref ele) => {
                 html_builder.push_str(&format!("<{}", ele.tag()));
                 for (key, value) in ele.attributes().raw().iter() {
-                    html_builder.push_str(&format!(" {}=\"{}\"", key, value.join(" ")));
+                    html_builder.push_str(&format!(" {}='{}'", key, value.join(" ")));
                 }
                 html_builder.push_str(&format!(">{}", common::newline()));
 

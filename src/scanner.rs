@@ -64,48 +64,76 @@ impl<'a> Iterator for Scanner<'a> {
             '(' => Some(Token::OpenParen()),
             ')' => Some(Token::CloseParen()),
             '"' => {
-                if self.is_quoted == false {
-                    let mut text_builder = String::new();
-                    if let Some(c) = self.chars.next() {
-                        text_builder.push(c);
-                        loop {
-                            if let Some(next_char) = self.chars.next() {
-                                if self.is_quoted {
-                                    // This is quoted which means as long as we don't get another double quote we are
-                                    // to take every character and append as text
-                                    if next_char != '"' {
-                                        text_builder.push(next_char);
-                                    } else {
-                                        self.current_char = Some(next_char);
-                                        // We found the end of the text
-                                        break;
-                                    }
-                                } else {
-                                    if Token::is_delim(&next_char) {
-                                        self.current_char = if next_char != '"' {
-                                            Some(next_char)
-                                        } else {
-                                            None
-                                        };
-                                        break;
-                                    } else {
-                                        text_builder.push(next_char);
-                                    }
-                                }
-                            } else {
-                                break;
-                            }
+                let mut text_builder = String::new();
+                let mut value: Option<Token> = None;
+                loop {
+                    match self.chars.next() {
+                        Some('"') => {
+                            value = Some(Token::Text(text_builder.to_string()));
+                            break;
+                        },
+                        Some(ch) => text_builder.push(ch),
+                        None => {
+                            value = Some(Token::Text(text_builder.to_string()));
+                            break;
                         }
-                        Some(Token::Text(text_builder))
-                    } else {
-                        Some(Token::DoubleQuote())
+                    }
+                }
+                value
+                // if self.is_quoted == false {
+                //     let mut text_builder = String::new();
+                //     if let Some(c) = self.chars.next() {
+                //         text_builder.push(c);
+                //         loop {
+                //             if let Some(next_char) = self.chars.next() {
+                //                 if self.is_quoted {
+                //                     // This is quoted which means as long as we don't get another double quote we are
+                //                     // to take every character and append as text
+                //                     if next_char != '"' {
+                //                         text_builder.push(next_char);
+                //                     } else {
+                //                         self.current_char = Some(next_char);
+                //                         // We found the end of the text
+                //                         break;
+                //                     }
+                //                 } else {
+                //                     if Token::is_delim(&next_char) {
+                //                         self.current_char = if next_char != '"' {
+                //                             Some(next_char)
+                //                         } else {
+                //                             None
+                //                         };
+                //                         break;
+                //                     } else {
+                //                         text_builder.push(next_char);
+                //                     }
+                //                 }
+                //             } else {
+                //                 break;
+                //             }
+                //         }
+                //         Some(Token::Text(text_builder))
+                //     } else {
+                //         Some(Token::DoubleQuote())
+                //     }
+                // } else {
+                //     self.is_quoted = true;
+                //     Some(Token::DoubleQuote())
+                // }
+            }
+            '=' => {
+                if let Some(ch) = self.chars.next() {
+                    match ch {
+                        '>' => Some(Token::Arrow()),
+                        _ => {
+                            self.current_char = Some(ch);
+                            Some(Token::Equal())
+                        }
                     }
                 } else {
-                    self.is_quoted = true;
-                    Some(Token::DoubleQuote())
+                    Some(Token::Equal())
                 }
             }
-            '=' => Some(Token::Equal()),
             '/' => Some(Token::ForwardSlash()),
             '%' => Some(Token::PercentSign()),
             '.' => Some(Token::Period()),
@@ -131,6 +159,12 @@ impl<'a> Iterator for Scanner<'a> {
             }
             '@' => Some(Token::AtSymbol()),
             '#' => Some(Token::Hashtag()),
+            '{' => Some(Token::OpenCurlyBrace()),
+            '}' => Some(Token::ClosedCurlyBrace()),
+            '[' => Some(Token::OpenBrace()),
+            ']' => Some(Token::ClosedBrace()),
+            ':' => Some(Token::Colon()),
+            ',' => Some(Token::Comma()),
             c => {
                 let mut text_builder = String::new();
                 text_builder.push(c);
@@ -275,6 +309,64 @@ mod test {
     }
 
     #[test]
+    fn test_ruby_attribute() {
+        let haml = "{:id => \"Test\"}";
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::OpenCurlyBrace()), scanner.next());
+        assert_eq!(Some(Token::Colon()), scanner.next());
+        assert_eq!(Some(Token::Text("id".to_string())), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Arrow()), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Text("Test".to_string())), scanner.next());
+        assert_eq!(Some(Token::ClosedCurlyBrace()), scanner.next());
+        assert_eq!(None, scanner.next());
+    }
+
+    #[test]
+    fn test_ruby_attributes() {
+        let haml = "{:id => \"Test\", :class => \"container\"}";
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::OpenCurlyBrace()), scanner.next());
+        assert_eq!(Some(Token::Colon()), scanner.next());
+        assert_eq!(Some(Token::Text("id".to_string())), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Arrow()), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Text("Test".to_string())), scanner.next());
+        assert_eq!(Some(Token::Comma()), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Colon()), scanner.next());
+        assert_eq!(Some(Token::Text("class".to_string())), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Arrow()), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Text("container".to_string())), scanner.next());
+        assert_eq!(Some(Token::ClosedCurlyBrace()), scanner.next());
+        assert_eq!(None, scanner.next());
+    }
+
+    #[test]
+    fn test_ruby_attributes_with_dictionary() {
+        let haml = "{:id => [\"Test\", \"It\"]}";
+        let mut scanner = Scanner::new(haml);
+        assert_eq!(Some(Token::OpenCurlyBrace()), scanner.next());
+        assert_eq!(Some(Token::Colon()), scanner.next());
+        assert_eq!(Some(Token::Text("id".to_string())), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Arrow()), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::OpenBrace()), scanner.next());
+        assert_eq!(Some(Token::Text("Test".to_string())), scanner.next());
+        assert_eq!(Some(Token::Comma()), scanner.next());
+        assert_eq!(Some(Token::Whitespace()), scanner.next());
+        assert_eq!(Some(Token::Text("It".to_string())), scanner.next());
+        assert_eq!(Some(Token::ClosedBrace()), scanner.next());
+        assert_eq!(Some(Token::ClosedCurlyBrace()), scanner.next());
+        assert_eq!(None, scanner.next());
+    }
+
+    #[test]
     fn test_quoted_text() {
         let haml = "\"a\"";
         let mut scanner = Scanner::new(haml);
@@ -301,13 +393,6 @@ mod test {
         let mut scanner = Scanner::new(haml);
         assert_eq!(Some(Token::PercentSign()), scanner.next());
         assert_eq!(Some(Token::Text("a".to_string())), scanner.next());
-    }
-
-    #[test]
-    fn test_quoted_double_quote() {
-        let haml = "\"\"\"";
-        let mut scanner = Scanner::new(haml);
-        assert_eq!(Some(Token::Text("\"".to_string())), scanner.next());
     }
 
     #[test]
