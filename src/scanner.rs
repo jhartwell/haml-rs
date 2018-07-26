@@ -49,15 +49,13 @@ impl<'a> Iterator for Scanner<'a> {
         }
         let return_value = match current_char {
             '\n' => Some(Token::EndLine()),
-            '\r' => {
-                match self.chars.next() {
-                    Some('\n') => Some(Token::EndLine()),
-                    Some(ch) => {
-                        self.current_char = Some(ch);
-                        self.next()
-                    }
-                    None => None
+            '\r' => match self.chars.next() {
+                Some('\n') => Some(Token::EndLine()),
+                Some(ch) => {
+                    self.current_char = Some(ch);
+                    self.next()
                 }
+                None => None,
             },
             '(' => Some(Token::OpenParen()),
             ')' => Some(Token::CloseParen()),

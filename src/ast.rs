@@ -21,18 +21,6 @@ impl Attributes {
         }
     }
 
-    pub fn contains_key(&self, key: &str) -> bool {
-        self.attributes.contains_key(key)
-    }
-
-    pub fn get(&self, key: &str) -> Option<&Vec<String>> {
-        if let Some(attr) = self.attributes.get(key) {
-            Some(attr)
-        } else {
-            None
-        }
-    }
-
     pub fn raw(&self) -> &HashMap<String, Vec<String>> {
         &self.attributes
     }
@@ -55,24 +43,6 @@ impl ToHtml for Attributes {
 
 pub trait ToHtml {
     fn to_html(&self) -> String;
-}
-
-pub struct HtmlDocument {
-    nodes: Vec<Html>,
-}
-
-impl HtmlDocument {
-    pub fn new() -> HtmlDocument {
-        HtmlDocument { nodes: vec![] }
-    }
-
-    pub fn nodes(&self) -> &Vec<Html> {
-        &self.nodes
-    }
-
-    pub fn nodes_mut(&mut self) -> &mut Vec<Html> {
-        &mut self.nodes
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -158,16 +128,8 @@ impl HtmlElement {
         &self.children
     }
 
-    pub fn children_mut(&mut self) -> &mut Vec<Html> {
-        &mut self.children
-    }
-
     pub fn add_attribute(&mut self, key: String, value: String) {
         self.attributes.add(key, value);
-    }
-
-    pub fn add_child(&mut self, child: Html) {
-        self.children.push(child);
     }
 }
 
@@ -188,10 +150,6 @@ impl Arena {
     pub fn add_sibling(&mut self, current_id: usize, sibling_id: usize) {
         self.nodes[current_id].next_sibling = Some(sibling_id);
         self.nodes[sibling_id].previous_sibling = Some(current_id);
-    }
-
-    pub fn set_parent(&mut self, current_id: usize, parent_id: usize) {
-        self.nodes[current_id].parent = parent_id;
     }
 
     pub fn parent(&self, id: usize) -> usize {
@@ -219,15 +177,10 @@ impl Arena {
         &self.nodes[id]
     }
 
-    pub fn len(&self) -> usize {
-        self.nodes.len()
-    }
-
     fn node_to_html(&self, id: usize) -> String {
         let mut html_builder = String::new();
-        let mut current_id = id;
 
-        let mut node = self.node_at(current_id);
+        let node = self.node_at(id);
         match node.data {
             Html::Element(ref ele) => {
                 html_builder.push_str(&format!("<{}", ele.tag()));
@@ -272,23 +225,11 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn parent(&self) -> usize {
-        self.parent
-    }
-
-    pub fn previous_sibling(&self) -> Option<usize> {
-        self.previous_sibling
-    }
-
     pub fn next_sibling(&self) -> Option<usize> {
         self.next_sibling
     }
 
     pub fn children(&self) -> &Vec<usize> {
         &self.children
-    }
-
-    pub fn data(&self) -> &Html {
-        &self.data
     }
 }

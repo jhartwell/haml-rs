@@ -14,7 +14,6 @@ pub enum Token {
     Indentation(u32),
     Text(String),
     DocType(),
-    CarriageReturn(),
 }
 
 impl ToString for Token {
@@ -34,7 +33,6 @@ impl ToString for Token {
             Token::EndLine() => "\n".to_string(),
             Token::Indentation(_u) => "  ".to_string(),
             Token::DocType() => "!!!".to_string(),
-            Token::CarriageReturn() => "\r".to_string(),
         }
     }
 }
@@ -57,20 +55,3 @@ impl Token {
         }
     }
 }
-// #[cfg(test)]
-// mod test {
-
-//     use super::*;
-
-//     #[test]
-//     fn test_token_value() {
-//         let line_number = 1;
-//         let position = 1;
-//         let token = Token::`Symbol();
-//         let expected_token = token.clone();
-//         let token_value = TokenValue::new(token, position, line_number);
-//         assert_eq!(line_number, token_value.get_line_number());
-//         assert_eq!(position, token_value.get_position());
-//         assert_eq!(&expected_token, token_value.get_token());
-//     }
-// }

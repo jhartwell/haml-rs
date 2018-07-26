@@ -1,50 +1,6 @@
-use ast::{Arena, Html, HtmlDocument, HtmlElement, Node};
-use std::fmt;
-use std::rc::Rc;
+use ast::{Arena, Html, HtmlElement};
 use std::slice::Iter;
 use values::Token;
-
-#[derive(Debug, PartialEq, Clone)]
-enum AttributeState {
-    Start(),
-    Id(String),
-    Value(),
-    End(),
-}
-
-#[derive(Debug, PartialEq)]
-enum State {
-    Start(),
-    DocType(),
-    BeginElement(),
-    EndElement(),
-    StartIdDiv(),
-    StartClassDiv(),
-    Element(),
-    Text(),
-    Comment(),
-    NewLine(),
-    None(),
-}
-
-impl fmt::Display for State {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let output = match self {
-            State::BeginElement() => "BeginElement",
-            State::EndElement() => "EndElement",
-            State::StartIdDiv() => "StartIdDiv",
-            State::StartClassDiv() => "StartClassDiv",
-            State::Element() => "Element",
-            State::Text() => "Text",
-            State::Comment() => "Comment",
-            State::NewLine() => "NewLine",
-            State::None() => "None",
-            State::DocType() => "DocType",
-            State::Start() => "Start",
-        };
-        write!(f, "{}", output)
-    }
-}
 
 pub struct Parser<'a> {
     tokens: Iter<'a, Token>,
@@ -155,8 +111,7 @@ impl<'a> Parser<'a> {
                     Token::ForwardSlash() => {
                         let comment = self.parse_comment();
                         element = Some(comment);
-                    },
-                    Token::CarriageReturn() => continue,
+                    }
                     Token::EndLine() => break,
                     Token::DocType() => loop {
                         match self.tokens.next() {
