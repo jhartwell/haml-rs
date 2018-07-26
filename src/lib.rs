@@ -8,10 +8,10 @@ use parser::Parser;
 use scanner::Scanner;
 
 /// Converts the Haml that is contained in a reference string
-/// into an owned string. 
-/// 
+/// into an owned string.
+///
 /// ## Example
-/// 
+///
 /// ```rust
 /// use haml;
 /// let html: String = haml::to_html("%span");

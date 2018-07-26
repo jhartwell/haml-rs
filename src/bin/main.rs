@@ -5,7 +5,6 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 
-
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() >= 3 {

@@ -10,7 +10,6 @@ pub struct Scanner<'a> {
 }
 
 impl<'a> Scanner<'a> {
-
     /// Constructs a new Scanner<'a>
     pub fn new(raw_haml: &'a str) -> Scanner<'a> {
         Scanner {
@@ -54,7 +53,7 @@ impl<'a> Iterator for Scanner<'a> {
         }
         let return_value = match current_char {
             '\n' => Some(Token::EndLine()),
-            '\r' =>  match self.chars.next() {
+            '\r' => match self.chars.next() {
                 Some('\n') => Some(Token::EndLine()),
                 Some(ch) => {
                     self.current_char = Some(ch);

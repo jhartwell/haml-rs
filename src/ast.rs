@@ -195,7 +195,7 @@ impl Arena {
 
                 html_builder.push_str(&format!("</{}>{}", ele.tag(), newline()));
             }
-            ref data => html_builder.push_str(&format!("{}{}", data.to_html(),newline())),
+            ref data => html_builder.push_str(&format!("{}{}", data.to_html(), newline())),
         }
         if let Some(sibling_id) = node.next_sibling() {
             html_builder.push_str(&format!("{}", self.node_to_html(sibling_id)));
@@ -233,7 +233,6 @@ impl Node {
         &self.children
     }
 }
-
 
 #[cfg(target_os = "windows")]
 fn newline() -> &'static str {
