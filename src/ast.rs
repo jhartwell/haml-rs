@@ -136,7 +136,7 @@ impl HtmlElement {
 
 #[derive(Debug)]
 pub struct Arena {
-    nodes: Vec<Node>
+    nodes: Vec<Node>,
 }
 
 impl Arena {
@@ -183,8 +183,10 @@ impl Arena {
         match node.data {
             Html::Element(ref ele) => {
                 html_builder.push_str(&format!("<{}", ele.tag()));
-                for (key, value) in ele.attributes().raw().iter() {
-                    html_builder.push_str(&format!(" {}='{}'", key, value.join(" ")));
+                for key in sort(ele.attributes().raw()) {
+                    if let Some(ref value) = ele.attributes().raw().get(&key) {
+                        html_builder.push_str(&format!(" {}=\'{}\'", key, value.join(" ")));
+                    }
                 }
                 html_builder.push_str(&format!(">{}", common::newline()));
 
@@ -197,9 +199,9 @@ impl Arena {
             ref data => html_builder.push_str(&format!("{}{}", data.to_html(), common::newline())),
         }
         if id == 0 {
-        if let Some(sibling_id) = node.next_sibling() {
-            html_builder.push_str(&format!("{}", self.node_to_html(sibling_id)));
-        }
+            if let Some(sibling_id) = node.next_sibling() {
+                html_builder.push_str(&format!("{}", self.node_to_html(sibling_id)));
+            }
         }
 
         html_builder
@@ -232,4 +234,13 @@ impl Node {
     pub fn children(&self) -> &Vec<usize> {
         &self.children
     }
+}
+
+fn sort(map: &HashMap<String, Vec<String>>) -> Vec<String> {
+    let mut v = vec![];
+    for key in map.keys() {
+        v.push(key.clone());
+    }
+    v.sort();
+    v
 }

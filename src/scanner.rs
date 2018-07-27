@@ -71,7 +71,7 @@ impl<'a> Iterator for Scanner<'a> {
                         Some('"') => {
                             value = Some(Token::Text(text_builder.to_string()));
                             break;
-                        },
+                        }
                         Some(ch) => text_builder.push(ch),
                         None => {
                             value = Some(Token::Text(text_builder.to_string()));

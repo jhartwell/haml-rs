@@ -27,5 +27,8 @@ fn test_custom_elements() {
 
 #[test]
 fn test_ruby_attributes() {
-    test("tests/inputs/ruby_attributes.haml", "tests/outputs/ruby_attributes.html");
+    test(
+        "tests/inputs/ruby_attributes.haml",
+        "tests/outputs/ruby_attributes.html",
+    );
 }
