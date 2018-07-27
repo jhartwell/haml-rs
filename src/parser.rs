@@ -147,7 +147,7 @@ impl<'a> Parser<'a> {
         let mut id = "";
         loop {
             match self.tokens.next() {
-                Some(tok) => {println!("{:?}", tok); match tok {
+                Some(tok) => match tok {
                     Token::ClosedCurlyBrace() => break,
                     Token::Colon() => {
                         match self.tokens.next() {
@@ -188,7 +188,7 @@ impl<'a> Parser<'a> {
                     Token::Comma() => id = "",
                     Token::Text(ref text) => id = text,
                     _ => continue,
-                }},
+                },
                 None => break,
             }
         }

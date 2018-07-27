@@ -134,8 +134,9 @@ impl HtmlElement {
     }
 }
 
+#[derive(Debug)]
 pub struct Arena {
-    nodes: Vec<Node>,
+    nodes: Vec<Node>
 }
 
 impl Arena {
@@ -150,7 +151,6 @@ impl Arena {
 
     pub fn add_sibling(&mut self, current_id: usize, sibling_id: usize) {
         self.nodes[current_id].next_sibling = Some(sibling_id);
-        self.nodes[sibling_id].previous_sibling = Some(current_id);
     }
 
     pub fn parent(&self, id: usize) -> usize {
@@ -166,7 +166,6 @@ impl Arena {
         self.nodes.push(Node {
             parent: 0,
             children: vec![],
-            previous_sibling: None,
             next_sibling: None,
             data,
         });
@@ -180,7 +179,6 @@ impl Arena {
 
     fn node_to_html(&self, id: usize) -> String {
         let mut html_builder = String::new();
-
         let node = self.node_at(id);
         match node.data {
             Html::Element(ref ele) => {
@@ -198,8 +196,10 @@ impl Arena {
             }
             ref data => html_builder.push_str(&format!("{}{}", data.to_html(), common::newline())),
         }
+        if id == 0 {
         if let Some(sibling_id) = node.next_sibling() {
             html_builder.push_str(&format!("{}", self.node_to_html(sibling_id)));
+        }
         }
 
         html_builder
@@ -219,7 +219,6 @@ impl ToHtml for Arena {
 #[derive(Debug)]
 pub struct Node {
     parent: usize,
-    previous_sibling: Option<usize>,
     next_sibling: Option<usize>,
     children: Vec<usize>,
     data: Html,
