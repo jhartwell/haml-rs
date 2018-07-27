@@ -14,6 +14,13 @@ pub enum Token {
     Indentation(u32),
     Text(String),
     DocType(),
+    OpenCurlyBrace(),
+    ClosedCurlyBrace(),
+    Colon(),
+    Arrow(),
+    OpenBrace(),
+    ClosedBrace(),
+    Comma(),
 }
 
 impl Token {
@@ -31,6 +38,11 @@ impl Token {
             '#' => true,
             '\n' => true,
             '\r' => true,
+            '{' => true,
+            '}' => true,
+            ':' => true,
+            '[' => true,
+            ']' => true,
             _ => false,
         }
     }
