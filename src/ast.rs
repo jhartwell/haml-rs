@@ -134,7 +134,7 @@ impl HtmlElement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Arena {
     nodes: Vec<Node>,
 }
@@ -218,7 +218,7 @@ impl ToHtml for Arena {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Node {
     parent: usize,
     next_sibling: Option<usize>,
