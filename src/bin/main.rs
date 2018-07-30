@@ -2,25 +2,37 @@ extern crate haml;
 #[macro_use]
 extern crate clap;
 
+use clap::{App, Arg, SubCommand};
 use std::env;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
-use clap::App;
 
 fn main() {
     let yml = load_yaml!("hamlrs.yml");
-    let m = App::from_yaml(yml).get_matches();
+    let m = App::new("Hamlrs")
+        .version("0.2.1")
+        .author("Jon Hartwell <jon@dontbreakthebuild.com>")
+        .about("Convert Haml to HTML")
+        .arg(Arg::with_name("INPUT").index(1))
+        .arg(Arg::with_name("OUTPUT").index(2))
+        .subcommand(
+            SubCommand::with_name("ast")
+                .about("Print the AST of the given Haml file")
+                .version("0.2.1")
+                .arg(Arg::with_name("INPUT").index(1))
+        ).get_matches();
 
     if let Some(matches) = m.subcommand_matches("ast") {
-        match matches.value_of("input") {
+        match matches.value_of("INPUT") {
             Some(input) => {
-
+                let contents = read_input(input);
+                println!("{}",haml::to_ast(&contents));
             },
             None => println!("Input file is required when printing AST.")
        }
     } else {
-        if m.is_present("input") && m.is_present("output") {
+        if m.is_present("INPUT") && m.is_present("OUTPUT") {
 
         } else {
             println!("Input and output file required.");
