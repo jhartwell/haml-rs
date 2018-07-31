@@ -31,23 +31,17 @@ fn main() {
        }
     } else {
         if m.is_present("INPUT") && m.is_present("OUTPUT") {
-
+            let input_file = m.value_of("INPUT").unwrap();
+            let output_file = m.value_of("OUTPUT").unwrap();
+            let haml = read_input(input_file);
+            let html = haml::to_html(&haml);
+            if let Err(err) = write_file(output_file, &html) {
+                println!("Error writing output: {:?}", err);
+            }
         } else {
             println!("Input and output file required.");
         }
     }
-    // let args: Vec<String> = env::args().collect();
-    // if args.len() >= 3 {
-    //     let input_file = &args[1];
-    //     let output_file = &args[2];
-    //     let haml = read_input(input_file);
-    //     let html = haml::to_html(&haml);
-    //     if let Err(err) = write_file(output_file, &html) {
-    //         println!("Error writing output: {:?}", err);
-    //     }
-    // } else {
-    //     println!("Incorrect usage. Please see below for correct usage.\n\thamlrs input output\n");
-    // }
 }
 
 fn read_input(file_name: &str) -> String {
