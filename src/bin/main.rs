@@ -1,5 +1,4 @@
 extern crate haml;
-#[macro_use]
 extern crate clap;
 
 use clap::{App, Arg, SubCommand};
@@ -9,7 +8,6 @@ use std::io;
 use std::io::prelude::*;
 
 fn main() {
-    let yml = load_yaml!("hamlrs.yml");
     let m = App::new("Hamlrs")
         .version("0.2.1")
         .author("Jon Hartwell <jon@dontbreakthebuild.com>")

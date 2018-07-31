@@ -157,12 +157,12 @@ impl Arena {
         &self.nodes[id]
     }
 
-    fn node_to_ast(&self, id: usize) -> String {
+    fn node_to_ast(&self, id: usize, indent: &str) -> String {
         let mut ast_builder = String::new();
         let node = self.node_at(id);
-        ast_builder.push_str(&node.data.to_ast());
+        ast_builder.push_str(&format!("{:?}",node.data));
         for child in node.children() {
-            ast_builder.push_str(&format!("\n\t{}", self.node_to_ast(*child)));
+            ast_builder.push_str(&format!("\n{}{}", indent, self.node_to_ast(*child, &format!("{}\t", indent))));
         }
         ast_builder
     }
@@ -213,7 +213,7 @@ impl ToHtml for Arena {
 impl ToAst for Arena {
     fn to_ast(&self) -> String {
         if self.nodes.len() > 0 {
-            self.node_to_ast(0) 
+            self.node_to_ast(0, "") 
         } else {
             "".to_string()
         }

@@ -32,8 +32,7 @@ pub fn to_html(haml: &str) -> String {
 ///
 /// ```rust
 /// use haml;
-/// use haml::ast::Arena;
-/// let ast: Arena = haml::to_ast("%span");
+/// let ast = haml::to_ast("%span");
 /// ```
 pub fn to_ast(haml: &str) -> String {
     let mut scanner = Scanner::new(haml);

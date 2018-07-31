@@ -8,13 +8,6 @@ fn test(input_file: &str, expected_output_file: &str) {
     assert_eq!(html, actual_html);
 }
 
-fn test_debug(input_file: &str) {
-    let haml = &common::read_file(input_file);
-    let tokens = haml::tokenize(haml);
-    println!("{:?}", tokens);
-    assert!(false)
-}
-
 #[test]
 fn test_basic_haml() {
     test("tests/inputs/basic.haml", "tests/outputs/basic.html");
