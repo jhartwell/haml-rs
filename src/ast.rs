@@ -42,8 +42,13 @@ impl ToHtml for Attributes {
     }
 }
 
+
 pub trait ToHtml {
     fn to_html(&self) -> String;
+}
+
+pub trait ToAst {
+    fn to_ast(&self) -> String;
 }
 
 #[derive(Clone, Debug)]
@@ -54,14 +59,8 @@ pub enum Html {
     Element(HtmlElement),
 }
 
-impl ToHtml for Html {
-    fn to_html(&self) -> String {
-        match self {
-            Html::Comment(text) => format!("<!-- {} -->", text),
-            Html::Text(text) => text.to_string(),
-            Html::Element(el) => el.to_html(),
-            Html::Doctype(text) => {
-                match text.to_lowercase().as_ref() {
+fn doctype_lookup(doctype: &str) -> String {
+    match doctype {
                     "strict" => 
                     "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">".to_string(),
                     "frameset" =>
@@ -78,41 +77,26 @@ impl ToHtml for Html {
                         "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">".to_string()
                     }
                 }
-            }
-        }
+}
+
+ 
+impl ToAst for Html {
+    fn to_ast(&self) -> String {
+        format!("{:?}", self)
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct HtmlElement {
     tag: String,
-    children: Vec<Html>,
     attributes: Attributes,
 }
 
-impl ToHtml for HtmlElement {
-    fn to_html(&self) -> String {
-        let mut html_builder = String::new();
-        html_builder.push_str(&format!("<{}", self.tag));
-        if self.attributes.size() > 0 {
-            html_builder.push_str(&self.attributes.to_html());
-        }
-        html_builder.push('>');
-
-        for child in self.children() {
-            html_builder.push_str(&child.to_html());
-        }
-
-        html_builder.push_str(&format!("</{}>", self.tag));
-        html_builder
-    }
-}
 
 impl HtmlElement {
     pub fn new(tag: String) -> HtmlElement {
         HtmlElement {
             tag,
-            children: vec![],
             attributes: Attributes::new(),
         }
     }
@@ -125,16 +109,12 @@ impl HtmlElement {
         &self.attributes
     }
 
-    pub fn children(&self) -> &Vec<Html> {
-        &self.children
-    }
-
     pub fn add_attribute(&mut self, key: String, value: String) {
         self.attributes.add(key, value);
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Arena {
     nodes: Vec<Node>,
 }
@@ -177,6 +157,16 @@ impl Arena {
         &self.nodes[id]
     }
 
+    fn node_to_ast(&self, id: usize, indent: &str) -> String {
+        let mut ast_builder = String::new();
+        let node = self.node_at(id);
+        ast_builder.push_str(&format!("{:?}",node.data));
+        for child in node.children() {
+            ast_builder.push_str(&format!("\n{}{}", indent, self.node_to_ast(*child, &format!("{}\t", indent))));
+        }
+        ast_builder
+    }
+
     fn node_to_html(&self, id: usize) -> String {
         let mut html_builder = String::new();
         let node = self.node_at(id);
@@ -195,8 +185,10 @@ impl Arena {
                 }
 
                 html_builder.push_str(&format!("</{}>{}", ele.tag(), common::newline()));
-            }
-            ref data => html_builder.push_str(&format!("{}{}", data.to_html(), common::newline())),
+            },
+            Html::Doctype(ref doctype) => html_builder.push_str(&format!("{}{}", doctype_lookup(doctype), common::newline())),
+            Html::Comment(ref comment) => html_builder.push_str(&format!("<!-- {} -->{}", comment, common::newline())),
+            Html::Text(ref text) => html_builder.push_str(&format!("{}{}", text, common::newline())),
         }
         if id == 0 {
             if let Some(sibling_id) = node.next_sibling() {
@@ -218,7 +210,17 @@ impl ToHtml for Arena {
     }
 }
 
-#[derive(Debug)]
+impl ToAst for Arena {
+    fn to_ast(&self) -> String {
+        if self.nodes.len() > 0 {
+            self.node_to_ast(0, "") 
+        } else {
+            "".to_string()
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Node {
     parent: usize,
     next_sibling: Option<usize>,

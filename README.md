@@ -29,9 +29,15 @@ fn main() {
 }
 ```
 
-#### CLI
+## CLI
 
 `hamlrs input.haml output.html`
+
+### Printing the AST
+
+If you want to print out the AST that is generated for a given Haml file you can run the following command
+
+`hamlrs ast input.haml`
 
 
 ### Stability

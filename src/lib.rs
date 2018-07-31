@@ -5,9 +5,9 @@ mod parser;
 mod scanner;
 mod values;
 
+use ast::{ToAst,Arena};
 use parser::Parser;
 use scanner::Scanner;
-use values::Token;
 
 /// Converts the Haml that is contained in a reference string
 /// into an owned string.
@@ -26,7 +26,17 @@ pub fn to_html(haml: &str) -> String {
     generator::to_html(&parsed_values)
 }
 
-pub fn tokenize<'a>(haml: &'a str) -> Vec<Token> {
+/// Converts the Haml into an abstract syntax tree
+/// 
+/// ## Example
+///
+/// ```rust
+/// use haml;
+/// let ast = haml::to_ast("%span");
+/// ```
+pub fn to_ast(haml: &str) -> String {
     let mut scanner = Scanner::new(haml);
-    scanner.get_tokens().clone()
+    let tokens = scanner.get_tokens();
+    let mut parser = Parser::new(tokens);
+    parser.parse().to_ast()
 }

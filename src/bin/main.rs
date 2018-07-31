@@ -1,23 +1,53 @@
 extern crate haml;
+extern crate clap;
 
+use clap::{App, Arg, SubCommand};
 use std::env;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() >= 3 {
-        let input_file = &args[1];
-        let output_file = &args[2];
-        let haml = read_input(input_file);
-        let html = haml::to_html(&haml);
-        if let Err(err) = write_file(output_file, &html) {
-            println!("Error writing output: {:?}", err);
-        }
+    let m = App::new("Hamlrs")
+        .version("0.2.1")
+        .author("Jon Hartwell <jon@dontbreakthebuild.com>")
+        .about("Convert Haml to HTML")
+        .arg(Arg::with_name("INPUT").index(1))
+        .arg(Arg::with_name("OUTPUT").index(2))
+        .subcommand(
+            SubCommand::with_name("ast")
+                .about("Print the AST of the given Haml file")
+                .version("0.2.1")
+                .arg(Arg::with_name("INPUT").index(1))
+        ).get_matches();
+
+    if let Some(matches) = m.subcommand_matches("ast") {
+        match matches.value_of("INPUT") {
+            Some(input) => {
+                let contents = read_input(input);
+                println!("{}",haml::to_ast(&contents));
+            },
+            None => println!("Input file is required when printing AST.")
+       }
     } else {
-        println!("Incorrect usage. Please see below for correct usage.\n\thamlrs input output\n");
+        if m.is_present("INPUT") && m.is_present("OUTPUT") {
+
+        } else {
+            println!("Input and output file required.");
+        }
     }
+    // let args: Vec<String> = env::args().collect();
+    // if args.len() >= 3 {
+    //     let input_file = &args[1];
+    //     let output_file = &args[2];
+    //     let haml = read_input(input_file);
+    //     let html = haml::to_html(&haml);
+    //     if let Err(err) = write_file(output_file, &html) {
+    //         println!("Error writing output: {:?}", err);
+    //     }
+    // } else {
+    //     println!("Incorrect usage. Please see below for correct usage.\n\thamlrs input output\n");
+    // }
 }
 
 fn read_input(file_name: &str) -> String {
