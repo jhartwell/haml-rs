@@ -42,7 +42,6 @@ impl ToHtml for Attributes {
     }
 }
 
-
 pub trait ToHtml {
     fn to_html(&self) -> String;
 }
@@ -79,7 +78,6 @@ fn doctype_lookup(doctype: &str) -> String {
                 }
 }
 
- 
 impl ToAst for Html {
     fn to_ast(&self) -> String {
         format!("{:?}", self)
@@ -91,7 +89,6 @@ pub struct HtmlElement {
     tag: String,
     attributes: Attributes,
 }
-
 
 impl HtmlElement {
     pub fn new(tag: String) -> HtmlElement {
@@ -131,6 +128,11 @@ impl Arena {
 
     pub fn add_sibling(&mut self, current_id: usize, sibling_id: usize) {
         self.nodes[current_id].next_sibling = Some(sibling_id);
+        self.nodes[sibling_id].parent = self.parent(current_id);
+    }
+
+    pub fn grandparent(&self, id: usize) -> usize {
+        self.parent(self.parent(id))
     }
 
     pub fn parent(&self, id: usize) -> usize {
@@ -160,9 +162,13 @@ impl Arena {
     fn node_to_ast(&self, id: usize, indent: &str) -> String {
         let mut ast_builder = String::new();
         let node = self.node_at(id);
-        ast_builder.push_str(&format!("{:?}",node.data));
+        ast_builder.push_str(&format!("{:?}", node.data));
         for child in node.children() {
-            ast_builder.push_str(&format!("\n{}{}", indent, self.node_to_ast(*child, &format!("{}\t", indent))));
+            ast_builder.push_str(&format!(
+                "\n{}{}",
+                indent,
+                self.node_to_ast(*child, &format!("{}\t", indent))
+            ));
         }
         ast_builder
     }
@@ -184,11 +190,19 @@ impl Arena {
                     html_builder.push_str(&format!("{}", self.node_to_html(*child_id)));
                 }
 
-                html_builder.push_str(&format!("</{}>{}", ele.tag(), common::newline()));
-            },
-            Html::Doctype(ref doctype) => html_builder.push_str(&format!("{}{}", doctype_lookup(doctype), common::newline())),
-            Html::Comment(ref comment) => html_builder.push_str(&format!("<!-- {} -->{}", comment, common::newline())),
-            Html::Text(ref text) => html_builder.push_str(&format!("{}{}", text, common::newline())),
+                if common::does_tag_close(&ele.tag()) {
+                    html_builder.push_str(&format!("</{}>{}", ele.tag(), common::newline()));
+                }
+            }
+            Html::Doctype(ref doctype) => {
+                html_builder.push_str(&format!("{}{}", doctype_lookup(doctype), common::newline()))
+            }
+            Html::Comment(ref comment) => {
+                html_builder.push_str(&format!("<!-- {} -->{}", comment, common::newline()))
+            }
+            Html::Text(ref text) => {
+                html_builder.push_str(&format!("{}{}", text, common::newline()))
+            }
         }
         if id == 0 {
             if let Some(sibling_id) = node.next_sibling() {
@@ -213,7 +227,7 @@ impl ToHtml for Arena {
 impl ToAst for Arena {
     fn to_ast(&self) -> String {
         if self.nodes.len() > 0 {
-            self.node_to_ast(0, "") 
+            self.node_to_ast(0, "")
         } else {
             "".to_string()
         }

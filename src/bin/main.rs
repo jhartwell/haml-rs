@@ -1,5 +1,5 @@
-extern crate haml;
 extern crate clap;
+extern crate haml;
 
 use clap::{App, Arg, SubCommand};
 use std::env;
@@ -18,17 +18,18 @@ fn main() {
             SubCommand::with_name("ast")
                 .about("Print the AST of the given Haml file")
                 .version("0.2.1")
-                .arg(Arg::with_name("INPUT").index(1))
-        ).get_matches();
+                .arg(Arg::with_name("INPUT").index(1)),
+        )
+        .get_matches();
 
     if let Some(matches) = m.subcommand_matches("ast") {
         match matches.value_of("INPUT") {
             Some(input) => {
                 let contents = read_input(input);
-                println!("{}",haml::to_ast(&contents));
-            },
-            None => println!("Input file is required when printing AST.")
-       }
+                println!("{}", haml::to_ast(&contents));
+            }
+            None => println!("Input file is required when printing AST."),
+        }
     } else {
         if m.is_present("INPUT") && m.is_present("OUTPUT") {
             let input_file = m.value_of("INPUT").unwrap();

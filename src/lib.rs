@@ -5,7 +5,7 @@ mod parser;
 mod scanner;
 mod values;
 
-use ast::{ToAst,Arena};
+use ast::{Arena, ToAst};
 use parser::Parser;
 use scanner::Scanner;
 
@@ -27,7 +27,7 @@ pub fn to_html(haml: &str) -> String {
 }
 
 /// Converts the Haml into an abstract syntax tree
-/// 
+///
 /// ## Example
 ///
 /// ```rust

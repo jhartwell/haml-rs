@@ -28,16 +28,10 @@ fn test_ruby_attributes() {
 
 #[test]
 fn test_basic_01() {
-    test(
-        "tests/inputs/01_basic.haml",
-        "tests/outputs/01_basic.html",
-    )
+    test("tests/inputs/01_basic.haml", "tests/outputs/01_basic.html")
 }
 
 #[test]
 fn test_head_02() {
-    test(
-        "tests/inputs/02_head.haml",
-        "tests/outputs/02_head.html",
-    )
+    test("tests/inputs/02_head.haml", "tests/outputs/02_head.html")
 }

@@ -5,6 +5,7 @@ use values::Token;
 pub struct Parser<'a> {
     tokens: Iter<'a, Token>,
     arena: Arena,
+    current_token: Option<&'a Token>,
 }
 
 pub struct Parsed(Option<Html>, u32);
@@ -14,6 +15,7 @@ impl<'a> Parser<'a> {
         Parser {
             tokens: tokens.iter(),
             arena: Arena::new(),
+            current_token: None,
         }
     }
 
@@ -41,11 +43,12 @@ impl<'a> Parser<'a> {
                         current_index = child_id;
                         previous_indent = indent;
                     } else if indent < previous_indent {
-                        let parent_id = self.arena.parent(current_index);
-                        let sibling_id = self.arena.new_node(html);
-                        self.arena.add_sibling(parent_id, sibling_id);
+                        let previous_parent_id = self.arena.parent(current_index);
+                        let current_parent_id = self.arena.parent(previous_parent_id);
+                        let child_id = self.arena.new_node(html);
+                        self.arena.add_child(child_id, current_parent_id);
                         previous_indent = indent;
-                        current_index = sibling_id;
+                        current_index = child_id;
                     } else {
                     }
                 }
@@ -65,8 +68,15 @@ impl<'a> Parser<'a> {
     fn do_parse(&mut self) -> Parsed {
         let mut element: Option<Html> = None;
         let mut current_indent = 0;
+        let mut token: Option<&Token> = None;
         loop {
-            match self.tokens.next() {
+            if self.current_token == None {
+                token = self.tokens.next();
+            } else {
+                token = self.current_token;
+                self.current_token = None;
+            }
+            match token {
                 Some(tok) => match tok {
                     Token::PercentSign() => {
                         element = Some(Html::Element(self.next_text()));
@@ -127,7 +137,21 @@ impl<'a> Parser<'a> {
                     },
                     Token::Indentation(indent) => current_indent = *indent,
                     Token::Whitespace() => continue,
-                    Token::Text(txt) => element = Some(Html::Text(txt.clone())),
+                    Token::Text(txt) => {
+                        let mut text_builder = txt.clone();
+                        loop {
+                            match self.tokens.next() {
+                                Some(Token::Whitespace()) => text_builder.push(' '),
+                                Some(Token::Text(ref text)) => text_builder.push_str(&text),
+                                Some(tok) => {
+                                    self.current_token = Some(tok);
+                                    break;
+                                }
+                                None => break,
+                            }
+                        }
+                        element = Some(Html::Text(text_builder));
+                    },
                     Token::OpenCurlyBrace() => {
                         if let Some(Html::Element(ref mut el)) = element {
                             self.parse_ruby_attributes(el);
@@ -389,7 +413,6 @@ mod test {
         let haml = "%span{:id => \"test\", :class => [\"container\", \"box\"]}";
         let mut scanner = Scanner::new(haml);
         let tokens = scanner.get_tokens();
-        println!("{:?}", tokens);
         let mut parser = Parser::new(tokens);
 
         let arena = parser.parse();
