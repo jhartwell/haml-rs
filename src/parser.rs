@@ -8,7 +8,7 @@ pub struct Parser<'a> {
     current_token: Option<&'a Token>,
 }
 
-pub struct Parsed(Option<Html>, u32);
+pub struct Parsed(Option<Html>, u32, bool);
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
@@ -23,35 +23,46 @@ impl<'a> Parser<'a> {
         let mut previous_indent = 0;
         let mut current_index: usize = 0;
         let mut root_node = true;
+        let mut jump_back = false;
         loop {
             match self.do_parse() {
-                Parsed(Some(html), indent) => {
+                Parsed(Some(html), indent, _blank_line) => {
                     if indent == previous_indent {
                         if !root_node {
                             let parent_id = self.arena.parent(current_index);
-                            let sibling_id = self.arena.new_node(html);
+                            let sibling_id = self.arena.new_node(html, indent);
                             self.arena.add_sibling(current_index, sibling_id);
                             self.arena.add_child(sibling_id, parent_id);
                             current_index = sibling_id;
                         } else {
                             root_node = false;
-                            current_index = self.arena.new_node(html);
+                            current_index = self.arena.new_node(html, indent);
                         }
                     } else if indent > previous_indent {
-                        let child_id = self.arena.new_node(html);
+                        let child_id = self.arena.new_node(html, indent);
                         self.arena.add_child(child_id, current_index);
                         current_index = child_id;
                         previous_indent = indent;
                     } else if indent < previous_indent {
-                        let previous_parent_id = self.arena.parent(current_index);
-                        let current_parent_id = self.arena.parent(previous_parent_id);
-                        let child_id = self.arena.new_node(html);
-                        self.arena.add_child(child_id, current_parent_id);
-                        previous_indent = indent;
-                        current_index = child_id;
-                    } else {
+                        if jump_back {
+                            if let Some(parent) = self.arena.at_indentation(indent - 1) {
+                                let child_id = self.arena.new_node(html, indent);
+                                self.arena.add_child(child_id, parent);
+                                previous_indent = indent;
+                                current_index = child_id;
+                            }
+                            jump_back = false;
+                        } else {
+                            let previous_parent_id = self.arena.parent(current_index);
+                            let current_parent_id = self.arena.parent(previous_parent_id);
+                            let child_id = self.arena.new_node(html, indent);
+                            self.arena.add_child(child_id, current_parent_id);
+                            previous_indent = indent;
+                            current_index = child_id;
+                        }
                     }
                 }
+                Parsed(None, _indent, true) => jump_back = true,
                 _ => break,
             }
         }
@@ -69,6 +80,7 @@ impl<'a> Parser<'a> {
         let mut element: Option<Html> = None;
         let mut current_indent = 0;
         let mut token: Option<&Token> = None;
+        let mut is_blank_line = false;
         loop {
             if self.current_token == None {
                 token = self.tokens.next();
@@ -122,7 +134,10 @@ impl<'a> Parser<'a> {
                         let comment = self.parse_comment();
                         element = Some(comment);
                     }
-                    Token::EndLine() => break,
+                    Token::EndLine() => {
+                        is_blank_line = true;
+                        break;
+                    }
                     Token::DocType() => loop {
                         match self.tokens.next() {
                             Some(Token::Text(ref text)) => {
@@ -151,7 +166,7 @@ impl<'a> Parser<'a> {
                             }
                         }
                         element = Some(Html::Text(text_builder));
-                    },
+                    }
                     Token::OpenCurlyBrace() => {
                         if let Some(Html::Element(ref mut el)) = element {
                             self.parse_ruby_attributes(el);
@@ -164,7 +179,7 @@ impl<'a> Parser<'a> {
                 None => break,
             }
         }
-        Parsed(element, current_indent)
+        Parsed(element, current_indent, is_blank_line)
     }
 
     fn parse_ruby_attributes(&mut self, element: &mut HtmlElement) {

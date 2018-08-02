@@ -114,11 +114,15 @@ impl HtmlElement {
 #[derive(Debug, Clone)]
 pub struct Arena {
     nodes: Vec<Node>,
+    levels: HashMap<u32, usize>,
 }
 
 impl Arena {
     pub fn new() -> Arena {
-        Arena { nodes: vec![] }
+        Arena {
+            nodes: vec![],
+            levels: HashMap::new(),
+        }
     }
 
     pub fn add_child(&mut self, child_id: usize, parent_id: usize) {
@@ -143,14 +147,24 @@ impl Arena {
         }
     }
 
-    pub fn new_node(&mut self, data: Html) -> usize {
+    pub fn at_indentation(&self, indent: u32) -> Option<usize> {
+        if self.levels.contains_key(&indent) {
+            Some(self.levels[&indent])
+        } else {
+            None
+        }
+    }
+
+    pub fn new_node(&mut self, data: Html, indentation: u32) -> usize {
         let next_index = self.nodes.len();
         self.nodes.push(Node {
             parent: 0,
             children: vec![],
             next_sibling: None,
             data,
+            indentation,
         });
+        self.levels.insert(indentation, next_index);
 
         next_index
     }
@@ -240,6 +254,7 @@ pub struct Node {
     next_sibling: Option<usize>,
     children: Vec<usize>,
     data: Html,
+    indentation: u32,
 }
 
 impl Node {
@@ -249,6 +264,10 @@ impl Node {
 
     pub fn children(&self) -> &Vec<usize> {
         &self.children
+    }
+
+    pub fn indent(&self) -> u32 {
+        self.indentation
     }
 }
 
