@@ -135,10 +135,6 @@ impl Arena {
         self.nodes[sibling_id].parent = self.parent(current_id);
     }
 
-    pub fn grandparent(&self, id: usize) -> usize {
-        self.parent(self.parent(id))
-    }
-
     pub fn parent(&self, id: usize) -> usize {
         if self.nodes.len() > 0 {
             self.nodes[id].parent

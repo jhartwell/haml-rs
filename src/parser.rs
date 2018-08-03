@@ -44,25 +44,15 @@ impl<'a> Parser<'a> {
                         current_index = child_id;
                         previous_indent = indent;
                     } else if indent < previous_indent {
-                        if jump_back {
-                            if let Some(parent) = self.arena.at_indentation(indent - 1) {
-                                let child_id = self.arena.new_node(html, indent);
-                                self.arena.add_child(child_id, parent);
-                                previous_indent = indent;
-                                current_index = child_id;
-                            }
-                            jump_back = false;
-                        } else {
-                            let previous_parent_id = self.arena.parent(current_index);
-                            let current_parent_id = self.arena.parent(previous_parent_id);
-                            let child_id = self.arena.new_node(html, indent);
-                            self.arena.add_child(child_id, current_parent_id);
+                        let child_id = self.arena.new_node(html, indent);
+                        if let Some(parent) = self.arena.at_indentation(indent - 1) {
+                            self.arena.add_child(child_id, parent);
                             previous_indent = indent;
                             current_index = child_id;
                         }
                     }
                 }
-                Parsed(None, _indent, true) => jump_back = true,
+                Parsed(None, _indent, true) => continue,
                 _ => break,
             }
         }
