@@ -5,7 +5,7 @@ mod parser;
 mod scanner;
 mod values;
 
-use ast::{Arena, ToAst};
+use ast::ToAst;
 use parser::Parser;
 use scanner::Scanner;
 

@@ -23,7 +23,6 @@ impl<'a> Parser<'a> {
         let mut previous_indent = 0;
         let mut current_index: usize = 0;
         let mut root_node = true;
-        let mut jump_back = false;
         loop {
             match self.do_parse() {
                 Parsed(Some(html), indent, _blank_line) => {
@@ -225,29 +224,26 @@ impl<'a> Parser<'a> {
     fn parse_attributes(&mut self, element: &mut HtmlElement) {
         let mut at_id = true;
         let mut id = "";
-        loop {
-            match self.tokens.next() {
-                Some(tok) => match tok {
-                    Token::CloseParen() => break,
-                    Token::Text(txt) => {
-                        if at_id {
-                            id = txt
-                        } else {
-                            element.add_attribute(id.to_string(), txt.to_string());
-                            id = "";
-                            at_id = true;
-                        }
+        while let Some(tok) = self.tokens.next() {
+            match tok {
+                Token::CloseParen() => break,
+                Token::Text(txt) => {
+                    if at_id {
+                        id = txt
+                    } else {
+                        element.add_attribute(id.to_string(), txt.to_string());
+                        id = "";
+                        at_id = true;
                     }
-                    Token::Equal() => {
-                        if at_id {
-                            at_id = false;
-                        } else {
-                            panic!("Unexpected \"=\" when parsing attributes");
-                        }
+                }
+                Token::Equal() => {
+                    if at_id {
+                        at_id = false;
+                    } else {
+                        panic!("Unexpected \"=\" when parsing attributes");
                     }
-                    _ => continue,
-                },
-                None => break,
+                }
+                _ => continue,
             }
         }
     }

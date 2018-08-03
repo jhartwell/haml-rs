@@ -25,10 +25,6 @@ impl Attributes {
     pub fn raw(&self) -> &HashMap<String, Vec<String>> {
         &self.attributes
     }
-
-    pub fn size(&self) -> usize {
-        self.attributes.len()
-    }
 }
 
 impl ToHtml for Attributes {
@@ -260,10 +256,6 @@ impl Node {
 
     pub fn children(&self) -> &Vec<usize> {
         &self.children
-    }
-
-    pub fn indent(&self) -> u32 {
-        self.indentation
     }
 }
 

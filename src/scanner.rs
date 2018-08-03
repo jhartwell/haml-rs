@@ -128,29 +128,25 @@ impl<'a> Iterator for Scanner<'a> {
             c => {
                 let mut text_builder = String::new();
                 text_builder.push(c);
-                loop {
-                    if let Some(next_char) = self.chars.next() {
-                        if self.is_quoted {
-                            // This is quoted which means as long as we don't get another double quote we are
-                            // to take every character and append as text
-                            if next_char != '"' {
-                                text_builder.push(next_char);
-                            } else {
-                                self.is_quoted = false;
-                                self.current_char = Some(next_char);
-                                // We found the end of the text
-                                break;
-                            }
+                while let Some(next_char) = self.chars.next() {
+                    if self.is_quoted {
+                        // This is quoted which means as long as we don't get another double quote we are
+                        // to take every character and append as text
+                        if next_char != '"' {
+                            text_builder.push(next_char);
                         } else {
-                            if Token::is_delim(&next_char) {
-                                self.current_char = Some(next_char);
-                                break;
-                            } else {
-                                text_builder.push(next_char);
-                            }
+                            self.is_quoted = false;
+                            self.current_char = Some(next_char);
+                            // We found the end of the text
+                            break;
                         }
                     } else {
-                        break;
+                        if Token::is_delim(&next_char) {
+                            self.current_char = Some(next_char);
+                            break;
+                        } else {
+                            text_builder.push(next_char);
+                        }
                     }
                 }
                 if self.is_quoted {

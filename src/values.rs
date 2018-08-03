@@ -3,7 +3,6 @@ pub enum Token {
     ForwardSlash(),
     Period(),
     Equal(),
-    DoubleQuote(),
     OpenParen(),
     CloseParen(),
     Whitespace(),
