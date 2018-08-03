@@ -42,7 +42,7 @@ If you want to print out the AST that is generated for a given Haml file you can
 
 ### Stability
 
-This software is in its early stages and as such there may be issues with stability. While the public interface is unlikely to change from the library perspective (Haml::to_html(&str) is pretty straightforward) there will be changes behind the scenes.
+This software is in its early stages and as such there may be issues with stability.
 
 If you find any bugs please don't hesitate to open an [issue](https://github.com/jhartwell/haml-rs/issues) on github or, if you want, you can reach out directly to me at jon@dontbreakthebuild.com
 
