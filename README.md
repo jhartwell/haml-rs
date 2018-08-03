@@ -10,7 +10,7 @@ To include haml-rs in your project add the following to your Cargo.toml:
 
 ```
 [dependencies]
-hamlrs = "0.2.1"
+hamlrs = "0.3.0"
 ```
 Then add the following to your code:
 
@@ -53,10 +53,7 @@ There are currently a few integration tests (and more to come). If you are going
 
 ## Current limitations
 
-There are a few limitations in this version of haml-rs. 
-
-  * No variable support
-  * Must use HTML syntax for attributes rather than Ruby syntax (so "()" instead of "{}")
+There is no variable/expression support in Haml-rs. This is something that is being thought about and if you want to add your thoughts you are more than welcome to comment [here](https://github.com/jhartwell/haml-rs/issues/6).
 
 
 ## Roadmap

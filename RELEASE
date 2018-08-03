@@ -1,3 +1,18 @@
+Version 0.3.0
+-------
+Features:
+    * CLI
+        - The CLI application now supports pretty-printing an AST of a Haml file. You can do this by running hamlrs ast input.haml
+    * Library
+        - Added Ruby style attributes with dictionary syntax 
+        - Added to_ast function in the haml module so it is possible to generate both AST or HTML from the library
+        - Attributes are now ordered similar to how the Ruby version of Haml does 
+
+Bug Fixes:
+    * Fixed various issues with improper nesting of elements. There were cases where nested elements would be put under the root element.
+    * Fixed issue where empty lines caused the parser to stop parsing. This was causing documents to only generate half of what they should
+    
+
 Version 0.2.0
 -------
 Breaking Changes:

@@ -8,8 +8,9 @@ use std::io;
 use std::io::prelude::*;
 
 fn main() {
+    let version = "0.3.0";
     let m = App::new("Hamlrs")
-        .version("0.2.1")
+        .version(version)
         .author("Jon Hartwell <jon@dontbreakthebuild.com>")
         .about("Convert Haml to HTML")
         .arg(Arg::with_name("INPUT").index(1))
@@ -17,7 +18,7 @@ fn main() {
         .subcommand(
             SubCommand::with_name("ast")
                 .about("Print the AST of the given Haml file")
-                .version("0.2.1")
+                .version(version)
                 .arg(Arg::with_name("INPUT").index(1)),
         )
         .get_matches();
