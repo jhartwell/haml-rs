@@ -35,3 +35,19 @@ fn test_basic_01() {
 fn test_head_02() {
     test("tests/inputs/02_head.haml", "tests/outputs/02_head.html")
 }
+
+#[cfg(all(feature = "unstable", test))]
+mod bench {
+    extern crate test;
+    use test::Bencher;
+    extern crate haml;
+
+    #[bench]
+    fn basic_01(b: &mut Bencher) {
+        let haml = include_str!("inputs/01_basic.haml");
+        b.iter(|| {
+            haml::to_html(haml);
+        });
+    }
+
+}
