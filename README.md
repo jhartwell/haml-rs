@@ -60,9 +60,8 @@ There is no variable/expression support in Haml-rs. This is something that is be
 
 These are things that are on the roadmap for this project:
 
-  * Documentation
+  * Web Assembly support
   * Add variable support
-  * Support ruby attributes
   * Add more tests
   * Improve performance (there are areas that are copying when they may not need to)
 
