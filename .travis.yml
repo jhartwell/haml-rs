@@ -1,17 +1,23 @@
 language: rust
 rust:
 - stable
+- nightly
+
 matrix:
   include:
   - env: TARGET=x86_64-unknown-linux-gnu
   - env: TARGET=x86_64-apple-darwin
     os: osx
   - env: TARGET=x86_64-pc-windows-gnu
-deploy:
-  provider: releases
-  api_key:
-    secure: gO/Pg8aqZ/yiGEmAJQWw25RqLIdZkI3QIPtxrl3uFpAbIn+julAVo5kTgTFzUDPUZUMGJnEIloohD3euWFOeFk+RCUwkmV9k+4aWflalHeaeXMW7jVsnBEOGZK8ONN+irkeAjcQNALdppxpeu1sePLwwZCnIwv/Kvf84X2nE5mtKg8yfNJrtXIK9gxLkX2dDZmym+v1MZwxO2oHTsbgOM41YF/XOhZCB7xj8pN6WTKlRltCtZIp3M2G2K9TchaTnlMSY4P0NbqacKcazuEDz15VmPSSrKdRHprcnj5fTvHXWGQ6eHvDlYsYfgvBIzWhXozuYcIaakwvP5+Yzox2Uioz0kGwhVqR4YuADSkoJ48iyUIOjNu5nDYOyDHXhIMSNN7h0TQFHy3NUevHhuBemuuP7DnUVYKC5j83iwSi2/k2Smi0vDe1JxzhP7leFWKPAqFVTCbvRR9t4nokxb0x1H/5FJN2jUWlOSNJbinmreI859lSXd6cRQsyjoY+plG7/aZTEPsCbFPGSHCWvVPh8pulziQXREjH7GMCk2jk7mO3Qy576W5L4bHG2H54cSH6M/ea73DFgl7mWFHOaLEnWfTgyY+RvcI2bSrpcumyEzzKqiUjPEGtzRStEk42A+ZJAXSW+0nU531fiqp6s/vKDQ75WdU9CD/oXGO8OX/IBcX8=
-  file: target/debug/hamlrs
-  skip_cleanup: true
-  on:
-    tags: true
+
+after_success:
+  - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
+        cargo bench;
+    fi
+script:
+  - cd hamlrs
+  - cargo test
+  - cd ../hamlrs-cli
+  - cargo build
+  - cd ../hamlrs-wasm
+  - cargo +nightly build --target wasm32-unknown-unknown

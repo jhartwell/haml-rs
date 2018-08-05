@@ -29,17 +29,6 @@ fn main() {
 }
 ```
 
-## CLI
-
-`hamlrs input.haml output.html`
-
-### Printing the AST
-
-If you want to print out the AST that is generated for a given Haml file you can run the following command
-
-`hamlrs ast input.haml`
-
-
 ### Stability
 
 This software is in its early stages and as such there may be issues with stability.
@@ -54,17 +43,6 @@ There are currently a few integration tests (and more to come). If you are going
 ## Current limitations
 
 There is no variable/expression support in Haml-rs. This is something that is being thought about and if you want to add your thoughts you are more than welcome to comment [here](https://github.com/jhartwell/haml-rs/issues/6).
-
-
-## Roadmap
-
-These are things that are on the roadmap for this project:
-
-  * Web Assembly support
-  * Add variable support
-  * Add more tests
-  * Improve performance (there are areas that are copying when they may not need to)
-
 
 ## License
 

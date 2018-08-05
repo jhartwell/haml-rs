@@ -3,10 +3,10 @@ name = "hamlrs"
 version = "0.3.0"
 authors = ["Jon Hartwell <jon@dontbreakthebuild.com>"]
 license = "MIT"
-description = "A Rust library and CLI tool for parsing [Haml](http://haml.info) templates"
+description = "A Rust library for parsing [Haml](http://haml.info) templates"
 respository = "https://github.com/jhartwell/haml-rs"
 keywords = ["haml", "templating", "template"]
-categories = ["command-line-utilities", "development-tools", "parser-implementations", "template-engine"]
+categories = ["development-tools", "parser-implementations", "template-engine"]
 readme = "README.md"
 maintenance = { status = "actively-developed" }
 
@@ -17,10 +17,4 @@ test = true
 doctest = true
 doc = true
 
-[[bin]]
-name = "hamlrs"
-path = "src/bin/main.rs"
 
-
-[dependencies]
-clap = "~2.27.0"
