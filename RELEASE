@@ -1,3 +1,7 @@
+Version 0.4.0
+-------
+Removed CLI from library project. The crate for the CLI is now https://crates.io/crates/hamlrs-cli
+
 Version 0.3.0
 -------
 Features:
