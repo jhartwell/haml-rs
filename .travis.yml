@@ -9,15 +9,3 @@ matrix:
   - env: TARGET=x86_64-apple-darwin
     os: osx
   - env: TARGET=x86_64-pc-windows-gnu
-
-after_success:
-  - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then
-        cargo bench;
-    fi
-script:
-  - cd hamlrs
-  - cargo test
-  - cd ../hamlrs-cli
-  - cargo build
-  - cd ../hamlrs-wasm
-  - cargo +nightly build --target wasm32-unknown-unknown

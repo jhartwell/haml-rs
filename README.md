@@ -1,8 +1,8 @@
 # Haml-rs
 
-[![](https://img.shields.io/crates/v/hamlrs.svg?maxAge=25920)](https://crates.io/crates/hamlrs) ![Travis CI Build Status](https://travis-ci.org/jhartwell/haml-rs.svg?branch=master)
+[![](https://img.shields.io/crates/v/hamlrs.svg?maxAge=25920)](https://crates.io/crates/hamlrs) ![Travis CI Build Status](https://travis-ci.org/Haml-rs/haml-rs.svg?branch=master)
 
-This is a library and CLI for parsing [Haml](http://haml.info/) templates. You are able to get Haml-rs on [Crates.io](https://crates.io/crates/hamlrs). The aim for this is to produce identical HTML to what the Ruby [Haml gem](https://rubygems.org/gems/haml) produces.
+This is a library for parsing [Haml](http://haml.info/) templates. You are able to get Haml-rs on [Crates.io](https://crates.io/crates/hamlrs). The aim for this is to produce identical HTML to what the Ruby [Haml gem](https://rubygems.org/gems/haml) produces.
 
 ## Usage
 
@@ -33,7 +33,7 @@ fn main() {
 
 This software is in its early stages and as such there may be issues with stability.
 
-If you find any bugs please don't hesitate to open an [issue](https://github.com/jhartwell/haml-rs/issues) on github or, if you want, you can reach out directly to me at jon@dontbreakthebuild.com
+If you find any bugs please don't hesitate to open an [issue on github](https://github.com/Haml-rs/haml-rs/issues) or, if you want, you can reach out directly to me at jon@dontbreakthebuild.com
 
 
 ## Integration tests
