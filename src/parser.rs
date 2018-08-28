@@ -122,6 +122,7 @@ impl<'a> Parser<'a> {
                     Token::ForwardSlash() => {
                         let comment = self.parse_comment();
                         element = Some(comment);
+                        break;
                     }
                     Token::EndLine() => {
                         is_blank_line = true;
@@ -254,11 +255,12 @@ impl<'a> Parser<'a> {
             match self.tokens.next() {
                 Some(Token::EndLine()) => break,
                 Some(Token::Text(txt)) => comment_builder.push_str(txt),
+                Some(Token::Whitespace()) => comment_builder.push(' '),
                 None => break,
                 _ => continue,
             }
         }
-        Html::Comment(comment_builder)
+        Html::Comment(comment_builder.trim().to_string())
     }
 }
 
