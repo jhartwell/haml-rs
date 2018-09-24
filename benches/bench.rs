@@ -1,13 +1,14 @@
 
-#![feature(test)]
+#[macro_use]
+extern crate criterion;
 extern crate haml;
-extern crate test;
-use test::Bencher;
 
-#[bench]
-fn basic_parsing(b: &mut Bencher) {
+use criterion::Criterion;
+
+fn criterion_benchmark(c: &mut Criterion) {
     let haml = include_str!("inputs/01_basic.haml");
-    b.iter(|| {
-        haml::to_html(haml);
-    });
+    c.bench_function("01 Basic", move |b| b.iter(|| haml::to_html(haml)));
 }
+
+criterion_group!(benches, criterion_benchmark);
+criterion_main!(benches);

@@ -18,3 +18,9 @@ doctest = true
 doc = true
 
 
+[dev-dependencies]
+criterion = "0.2.5"
+
+[[bench]]
+name = "bench"
+harness = false
