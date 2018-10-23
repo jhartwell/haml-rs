@@ -1,3 +1,7 @@
+Version 0.4.2
+-------
+Fixed bug where periods in text would cause parse failure as it was trying to parse as a class. Text with period now properly generates
+
 Version 0.4.1
 -------
 Fixed bug with comments not being outputted in the resulting HTML
