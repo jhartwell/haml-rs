@@ -8,3 +8,13 @@ pub fn read_file(path: &str) -> String {
         .expect("Could not successfully load file");
     contents
 }
+
+#[cfg(target_os = "windows")]
+pub fn newline() -> &'static str {
+    "\r\n"
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn newline() -> &'static str {
+    "\n"
+}

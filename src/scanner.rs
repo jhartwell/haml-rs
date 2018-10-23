@@ -141,7 +141,7 @@ impl<'a> Iterator for Scanner<'a> {
                             break;
                         }
                     } else {
-                        if Token::is_delim(&next_char) {
+                        if Token::is_delim(&next_char) && next_char != '.' {
                             self.current_char = Some(next_char);
                             break;
                         } else {

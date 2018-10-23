@@ -38,7 +38,18 @@ fn test_head_02() {
 
 #[test]
 fn test_comments_03() {
-    test("tests/inputs/03_comments.haml", "tests/outputs/03_comments.html")
+    test(
+        "tests/inputs/03_comments.haml",
+        "tests/outputs/03_comments.html",
+    )
+}
+
+#[test]
+fn test_text_with_period() {
+    let haml = "Sentence. Another sentence.";
+    let expected_output = format!("{}{}", haml, common::newline());
+    let html = haml::to_html(haml);
+    assert_eq!(expected_output, html);
 }
 
 #[cfg(all(feature = "unstable", test))]
@@ -58,9 +69,7 @@ mod bench {
     #[bench]
     fn head_02(b: &mut Bencher) {
         let haml = include_str("inputs/02_head.haml");
-        b.iter(|| {
-            haml::to_html(haml)
-        });
+        b.iter(|| haml::to_html(haml));
     }
 
 }
