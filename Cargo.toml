@@ -17,9 +17,11 @@ test = true
 doctest = true
 doc = true
 
-
 [dev-dependencies]
 criterion = "0.2.5"
+serde = "*"
+serde_derive = "*"
+serde_json = "*"
 
 [[bench]]
 name = "bench"
