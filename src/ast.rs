@@ -214,9 +214,7 @@ impl Arena {
                 }
                 html_builder.push_str(&format!("<!--{}-->", comment))
             }
-            Html::Text(ref text) => {
-                html_builder.push_str(&format!("{}", text))
-            }
+            Html::Text(ref text) => html_builder.push_str(&format!("{}", text)),
         }
         if id == 0 {
             if let Some(sibling_id) = node.next_sibling() {

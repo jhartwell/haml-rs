@@ -125,18 +125,16 @@ impl<'a> Parser<'a> {
                         let comment = self.parse_comment();
                         element = Some(comment);
                         break;
-                    },  
-                    Token::EndLine() => {
-                        match element {
-                            Some(Html::Element(ref mut el)) => {
-                                if !just_added_element {
-                                    el.body.push('\n');
-                                } else {
-                                    just_added_element = false;
-                                }
-                            },
-                            _ => continue,
+                    }
+                    Token::EndLine() => match element {
+                        Some(Html::Element(ref mut el)) => {
+                            if !just_added_element {
+                                el.body.push('\n');
+                            } else {
+                                just_added_element = false;
+                            }
                         }
+                        _ => continue,
                     },
                     Token::DocType() => loop {
                         match self.tokens.next() {
@@ -254,7 +252,7 @@ impl<'a> Parser<'a> {
                                 } else {
                                     txt.to_string()
                                 }
-                            },
+                            }
                             _ => txt.to_string(),
                         };
                         element.add_attribute(id.to_string(), attribute_value);
@@ -284,16 +282,16 @@ impl<'a> Parser<'a> {
                     has_newline = true;
                     last_token_newline = true;
                     comment_builder.push('\n');
-                },
+                }
                 Some(Token::Text(txt)) => {
                     last_token_newline = false;
                     comment_builder.push_str(txt);
-                },
+                }
                 Some(Token::Whitespace()) => {
                     if !last_token_newline {
                         comment_builder.push(' ');
                     }
-                },
+                }
                 None => break,
                 _ => last_token_newline = false,
             }

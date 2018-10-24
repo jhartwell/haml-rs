@@ -45,9 +45,9 @@ impl Test {
                 let config = match self.config {
                     Some(ref config) => match config.format {
                         Some(ref format) => format.to_string(),
-                        _ => "".to_string()
-                        },
-                    _ => "".to_string()
+                        _ => "".to_string(),
+                    },
+                    _ => "".to_string(),
                 };
                 println!("format: {}, section: {}, haml: {}", config, name, self.haml);
                 let actual_html = haml::to_html(&self.haml);
@@ -61,14 +61,4 @@ impl Test {
 pub struct Config {
     pub format: Option<String>,
     pub escape_html: Option<String>,
-}
-
-#[cfg(target_os = "windows")]
-pub fn newline() -> &'static str {
-    "\r\n"
-}
-
-#[cfg(not(target_os = "windows"))]
-pub fn newline() -> &'static str {
-    "\n"
 }

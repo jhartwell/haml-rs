@@ -11,6 +11,9 @@ use serde_json::{Error, Value};
 mod common;
 use common::{TestCollection, Tests};
 
+/*
+ * Run all non-optional tests in the json file
+ */
 #[test]
 fn all() -> Result<(), Error> {
     let json = include_str!("tests.json");
@@ -19,14 +22,23 @@ fn all() -> Result<(), Error> {
     Ok(())
 }
 
+/*
+ * This is used for testing one specific test from the JSON file at a time.
+ * Pass in the key for the test data to run_test_by_name and it will execute
+ * that given test
+ */
 #[test]
-fn single() -> Result<(),  Error> {
+fn single() -> Result<(), Error> {
     let json = include_str!("tests.json");
     let tests: Tests = serde_json::from_str(&json)?;
     tests.run_test_by_name("a tag with '<' appended");
     Ok(())
 }
 
+/*
+ * This is used for testing all tests that have previously been fixed. This is
+ * a regression of sorts so we make sure new fixes don't break previously fixed tests
+ */
 #[test]
 fn completed() -> Result<(), Error> {
     let json = include_str!("tests.json");
