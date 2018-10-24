@@ -82,8 +82,9 @@ impl ToAst for Html {
 
 #[derive(Clone, Debug)]
 pub struct HtmlElement {
-    tag: String,
-    attributes: Attributes,
+    pub tag: String,
+    pub attributes: Attributes,
+    pub body: String,
 }
 
 impl HtmlElement {
@@ -91,6 +92,7 @@ impl HtmlElement {
         HtmlElement {
             tag,
             attributes: Attributes::new(),
+            body: String::new(),
         }
     }
 
@@ -190,24 +192,30 @@ impl Arena {
                         html_builder.push_str(&format!(" {}=\'{}\'", key, value.join(" ")));
                     }
                 }
-                html_builder.push_str(&format!(">{}", common::newline()));
-
+                html_builder.push('>');
+                if ele.body != "" {
+                    html_builder.push_str(&ele.body);
+                }
                 for child_id in node.children() {
                     html_builder.push_str(&format!("{}", self.node_to_html(*child_id)));
                 }
 
                 if common::does_tag_close(&ele.tag()) {
-                    html_builder.push_str(&format!("</{}>{}", ele.tag(), common::newline()));
+                    html_builder.push_str(&format!("</{}>", ele.tag()));
                 }
             }
             Html::Doctype(ref doctype) => {
-                html_builder.push_str(&format!("{}{}", doctype_lookup(doctype), common::newline()))
+                html_builder.push_str(&format!("{}", doctype_lookup(doctype)))
             }
             Html::Comment(ref comment) => {
-                html_builder.push_str(&format!("<!-- {} -->{}", comment, common::newline()))
+                let mut comment = comment.to_string();
+                if !comment.ends_with("\n") {
+                    comment.push(' ');
+                }
+                html_builder.push_str(&format!("<!--{}-->", comment))
             }
             Html::Text(ref text) => {
-                html_builder.push_str(&format!("{}{}", text, common::newline()))
+                html_builder.push_str(&format!("{}", text))
             }
         }
         if id == 0 {

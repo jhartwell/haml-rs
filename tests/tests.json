@@ -332,7 +332,8 @@
         "html" : "<p class='hello'></p>",
         "locals" : {
           "var" : "hello"
-        }
+        },
+        "optional": true
       },
   
       "HTML-style tag with a CSS class and 'class' as a variable attribute" : {
@@ -340,7 +341,8 @@
         "html" : "<div class='hello world'></div>",
         "locals" : {
           "var" : "world"
-        }
+        },
+        "optional": true
       },
   
       "HTML-style tag multiple CSS classes (sorted correctly)" : {
@@ -348,7 +350,8 @@
         "html" : "<div class='a z'></div>",
         "locals" : {
           "var" : "a"
-        }
+        },
+        "optional": true
       },
   
       "HTML-style tag with an atomic attribute" : {
@@ -480,7 +483,7 @@
         "html" : "<!-- comment -->"
       },
   
-      "a nested markup comment" : {
+      "a nested markup comment nested markup comment" : {
         "haml" : "/\n  comment\n  comment2",
         "html" : "<!--\ncomment\ncomment2\n-->"
       }

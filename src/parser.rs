@@ -69,6 +69,7 @@ impl<'a> Parser<'a> {
         let mut element: Option<Html> = None;
         let mut current_indent = 0;
         let mut token: Option<&Token> = None;
+        let mut just_added_element = false;
         let mut is_blank_line = false;
         loop {
             if self.current_token == None {
@@ -81,6 +82,7 @@ impl<'a> Parser<'a> {
                 Some(tok) => match tok {
                     Token::PercentSign() => {
                         element = Some(Html::Element(self.next_text()));
+                        just_added_element = true;
                     }
                     Token::Period() => {
                         let mut class = String::new();
@@ -123,11 +125,19 @@ impl<'a> Parser<'a> {
                         let comment = self.parse_comment();
                         element = Some(comment);
                         break;
-                    }
+                    },  
                     Token::EndLine() => {
-                        is_blank_line = true;
-                        break;
-                    }
+                        match element {
+                            Some(Html::Element(ref mut el)) => {
+                                if !just_added_element {
+                                    el.body.push('\n');
+                                } else {
+                                    just_added_element = false;
+                                }
+                            },
+                            _ => continue,
+                        }
+                    },
                     Token::DocType() => loop {
                         match self.tokens.next() {
                             Some(Token::Text(ref text)) => {
@@ -155,7 +165,11 @@ impl<'a> Parser<'a> {
                                 None => break,
                             }
                         }
-                        element = Some(Html::Text(text_builder));
+                        if let Some(Html::Element(ref mut ele)) = element {
+                            ele.body.push_str(&text_builder);
+                        } else {
+                            element = Some(Html::Text(text_builder));
+                        }
                     }
                     Token::OpenCurlyBrace() => {
                         if let Some(Html::Element(ref mut el)) = element {
@@ -222,6 +236,7 @@ impl<'a> Parser<'a> {
             }
         }
     }
+
     fn parse_attributes(&mut self, element: &mut HtmlElement) {
         let mut at_id = true;
         let mut id = "";
@@ -232,7 +247,17 @@ impl<'a> Parser<'a> {
                     if at_id {
                         id = txt
                     } else {
-                        element.add_attribute(id.to_string(), txt.to_string());
+                        let attribute_value = match element.tag() {
+                            "input" => {
+                                if txt == "true" {
+                                    "checked".to_string()
+                                } else {
+                                    txt.to_string()
+                                }
+                            },
+                            _ => txt.to_string(),
+                        };
+                        element.add_attribute(id.to_string(), attribute_value);
                         id = "";
                         at_id = true;
                     }
@@ -251,16 +276,32 @@ impl<'a> Parser<'a> {
 
     fn parse_comment(&mut self) -> Html {
         let mut comment_builder = String::new();
+        let mut has_newline = false;
+        let mut last_token_newline = false;
         loop {
             match self.tokens.next() {
-                Some(Token::EndLine()) => break,
-                Some(Token::Text(txt)) => comment_builder.push_str(txt),
-                Some(Token::Whitespace()) => comment_builder.push(' '),
+                Some(Token::EndLine()) => {
+                    has_newline = true;
+                    last_token_newline = true;
+                    comment_builder.push('\n');
+                },
+                Some(Token::Text(txt)) => {
+                    last_token_newline = false;
+                    comment_builder.push_str(txt);
+                },
+                Some(Token::Whitespace()) => {
+                    if !last_token_newline {
+                        comment_builder.push(' ');
+                    }
+                },
                 None => break,
-                _ => continue,
+                _ => last_token_newline = false,
             }
         }
-        Html::Comment(comment_builder.trim().to_string())
+        if has_newline {
+            comment_builder.push('\n');
+        }
+        Html::Comment(comment_builder.to_string())
     }
 }
 
