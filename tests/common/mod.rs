@@ -1,7 +1,5 @@
 use haml;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::prelude::*;
 pub type Tests = HashMap<String, HashMap<String, Test>>;
 
 pub trait TestCollection {

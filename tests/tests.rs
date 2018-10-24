@@ -1,12 +1,10 @@
-#[macro_use]
 extern crate haml;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
-#[macro_use]
 extern crate serde_json;
 
-use serde_json::{Error, Value};
+use serde_json::Error;
 
 mod common;
 use common::{TestCollection, Tests};

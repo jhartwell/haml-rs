@@ -10,7 +10,6 @@ pub enum Token {
     PercentSign(),
     AtSymbol(),
     Hashtag(),
-    Indentation(u32),
     Text(String),
     DocType(),
     OpenCurlyBrace(),

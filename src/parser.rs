@@ -8,7 +8,7 @@ pub struct Parser<'a> {
     current_token: Option<&'a Token>,
 }
 
-pub struct Parsed(Option<Html>, u32, bool);
+pub struct Parsed(Option<Html>);
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
@@ -25,33 +25,18 @@ impl<'a> Parser<'a> {
         let mut root_node = true;
         loop {
             match self.do_parse() {
-                Parsed(Some(html), indent, _blank_line) => {
-                    if indent == previous_indent {
-                        if !root_node {
-                            let parent_id = self.arena.parent(current_index);
-                            let sibling_id = self.arena.new_node(html, indent);
-                            self.arena.add_sibling(current_index, sibling_id);
-                            self.arena.add_child(sibling_id, parent_id);
-                            current_index = sibling_id;
-                        } else {
-                            root_node = false;
-                            current_index = self.arena.new_node(html, indent);
-                        }
-                    } else if indent > previous_indent {
-                        let child_id = self.arena.new_node(html, indent);
-                        self.arena.add_child(child_id, current_index);
-                        current_index = child_id;
-                        previous_indent = indent;
-                    } else if indent < previous_indent {
-                        let child_id = self.arena.new_node(html, indent);
-                        if let Some(parent) = self.arena.at_indentation(indent - 1) {
-                            self.arena.add_child(child_id, parent);
-                            previous_indent = indent;
-                            current_index = child_id;
-                        }
+                Parsed(Some(html)) => {
+                    if !root_node {
+                        let parent_id = self.arena.parent(current_index);
+                        let sibling_id = self.arena.new_node(html, 0);
+                        self.arena.add_sibling(current_index, sibling_id);
+                        self.arena.add_child(sibling_id, parent_id);
+                        current_index = sibling_id;
+                    } else {
+                        root_node = false;
+                        current_index = self.arena.new_node(html, 0);
                     }
                 }
-                Parsed(None, _indent, true) => continue,
                 _ => break,
             }
         }
@@ -60,17 +45,28 @@ impl<'a> Parser<'a> {
 
     fn next_text(&mut self) -> HtmlElement {
         match self.tokens.next() {
-            Some(Token::Text(txt)) => HtmlElement::new(txt.to_string()),
+            Some(Token::Text(txt)) => {
+                println!("{}", txt);
+                let mut text: &str= txt;
+                if txt.ends_with("<") {
+                    println!("ends");
+                if let Some((i, _)) = txt.char_indices().rev().nth(1) {
+                    println!("in case: {}", i);
+                    text = &txt[..i];
+                }
+                }
+                println!("{}", text);
+                HtmlElement::new(text.to_string())
+            },
             _ => panic!("Expected text"),
         }
     }
 
     fn do_parse(&mut self) -> Parsed {
         let mut element: Option<Html> = None;
-        let mut current_indent = 0;
         let mut token: Option<&Token> = None;
         let mut just_added_element = false;
-        let mut is_blank_line = false;
+        let mut multi_line_element = false;
         loop {
             if self.current_token == None {
                 token = self.tokens.next();
@@ -148,7 +144,6 @@ impl<'a> Parser<'a> {
                             Some(tok) => panic!(format!("Expecting Text but found {:?}", tok)),
                         }
                     },
-                    Token::Indentation(indent) => current_indent = *indent,
                     Token::Whitespace() => continue,
                     Token::Text(txt) => {
                         let mut text_builder = txt.clone();
@@ -181,7 +176,7 @@ impl<'a> Parser<'a> {
                 None => break,
             }
         }
-        Parsed(element, current_indent, is_blank_line)
+        Parsed(element)
     }
 
     fn parse_ruby_attributes(&mut self, element: &mut HtmlElement) {
