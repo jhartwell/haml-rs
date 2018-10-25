@@ -53,6 +53,7 @@ pub enum Html {
     Doctype(String),
     Element(HtmlElement),
     SilentComment(String),
+    Css(CssElement),
 }
 
 fn doctype_lookup(doctype: &str) -> String {
@@ -78,6 +79,19 @@ fn doctype_lookup(doctype: &str) -> String {
 impl ToAst for Html {
     fn to_ast(&self) -> String {
         format!("{:?}", self)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct CssElement {
+    pub text: String,
+}
+
+impl CssElement {
+    pub fn new(text: String) -> CssElement {
+        CssElement {
+            text
+        }
     }
 }
 
@@ -142,14 +156,6 @@ impl Arena {
         }
     }
 
-    pub fn at_indentation(&self, indent: u32) -> Option<usize> {
-        if self.levels.contains_key(&indent) {
-            Some(self.levels[&indent])
-        } else {
-            None
-        }
-    }
-
     pub fn new_node(&mut self, data: Html, indentation: u32) -> usize {
         let next_index = self.nodes.len();
         self.nodes.push(Node {
@@ -193,7 +199,7 @@ impl Arena {
                         html_builder.push_str(&format!(" {}=\'{}\'", key, value.join(" ")));
                     }
                 }
-                if ele.body.is_empty() {
+                if ele.body.is_empty() && common::is_void_tag(&ele.tag) {
                     html_builder.push_str(" />");
                 } else {
                     html_builder.push('>');
@@ -219,6 +225,10 @@ impl Arena {
                     comment.push(' ');
                 }
                 html_builder.push_str(&format!("<!--{}-->", comment))
+            },
+            Html::Css(ref css) => {
+                println!("css");
+             html_builder.push_str(&format!("<style>{}</style>\n", css.text));
             }
             Html::Text(ref text) => html_builder.push_str(&format!("{}", text)),
             Html::SilentComment(_comment) => (),

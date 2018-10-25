@@ -1,4 +1,4 @@
-use ast::{Arena, Html, HtmlElement};
+use ast::{Arena, Html, HtmlElement, CssElement};
 use std::iter::Peekable;
 use std::slice::Iter;
 use values::{Tok, Token};
@@ -50,31 +50,34 @@ impl<'a> Parser<'a> {
 
     fn next_text(&mut self) -> HtmlElement {
         self.current_position += 1;
+        let mut classes = vec![];
         match self.tokens.next() {
             Some(token) => match token.value {
                 Tok::Text(ref txt) => {
                     let mut text: &str = txt;
+                    let mut items = text.split('.').into_iter();
+                    let tag = items.nth(0).unwrap();
+                    for class in items {
+                        classes.push(class.to_string());
+                    }
                     if txt.ends_with("<") {
                         if let Some((i, _)) = txt.char_indices().rev().nth(0) {
                             text = &txt[..i];
                         }
                     }
-                    HtmlElement::new(text.to_string())
+                    let mut element = HtmlElement::new(tag.to_string());
+                    if !classes.is_empty() {
+                        for class in classes {
+                            element.add_attribute("class".to_string(),  class.to_string());
+                        }
+                    }
+                    element
                 }
                 _ => panic!("Expected text"),
             },
             None => panic!("Expected text"),
         }
     }
-
-    // fn next_token(&mut self) -> &Token {
-    //     let token = self.next_token();
-    //     if let Some(Tok::EndLine()) = token {
-    //         self.current_position = 0;
-    //     } else {
-    //         self.current_position += 1;
-    //     }
-    // }
 
     fn do_parse(&mut self) -> Parsed {
         let mut element: Option<Html> = None;
@@ -113,7 +116,14 @@ impl<'a> Parser<'a> {
                         }
                     }
                     Tok::Dash() => {
-                        // self.parse_silent_comment();
+                        let mut temp = self.tokens.clone();
+                        let next_token = temp.peek();
+                        if let Some(next_token) = next_token {
+                            match &next_token.value {
+                                Tok::Hashtag() => element = Some(self.parse_silent_comment(&tok)),
+                                _ => continue,
+                            }
+                        }
                     }
                     Tok::Hashtag() => {
                         let mut id = String::new();
@@ -161,14 +171,6 @@ impl<'a> Parser<'a> {
                                 }
                             }
                             _ => ()
-                            // _ => loop {
-                            //     // rewrite to take advantage of token.current_line
-                            //     if let Some(token) = self.tokens.peek() {
-                            //         if let Tok::Whitespace() = token.value {
-                            //             self.fresh_line = true;
-                            //         }
-                            //     }
-                            //},
                         }
                     }
                     Tok::DocType() => loop {
@@ -185,6 +187,24 @@ impl<'a> Parser<'a> {
                             None => break,
                         }
                     },
+                    Tok::Colon() => {
+                        let mut temp = self.tokens.clone();
+                        let token = temp.next();
+                        self.tokens.next();
+                        if let Some(token) = token {
+                            match token.value {
+                               Tok::Text(ref text) => {
+                                    if text == "css" {
+                                        element = Some(Html::Css(self.parse_css_filter(tok)));
+                                        break;
+                                    } else {
+                                        self.current_token = Some(token);
+                                    }
+                                },
+                                _ => self.current_token = Some(token),
+                            }
+                        }
+                    }
                     Tok::Whitespace() => continue,
                     Tok::Text(txt) => {
                         let mut text_builder = txt.clone();
@@ -251,16 +271,23 @@ impl<'a> Parser<'a> {
         Parsed(element)
     }
 
-    // fn parse_silent_comment(&mut self) -> Html {
-    //     if let Some(Tok::EndLine()) = self.current_token {
-    //         element_start_position = Some(self.current_position);
-    //         if let Some(Tok::Hashtag()) = self.tokens.peek() {
-    //             self.current_position += 1;
-    //             self.next_token();
-    //             element = Some(Html::SilentComment())
-    //         }
-    //     }
-    // }
+    fn parse_css_filter(&mut self, previous_token: &Token) -> CssElement {
+        let mut css_builder = String::new();
+        loop {
+            match self.tokens.next() {
+                Some(token) => {
+                    if token.position == previous_token.position && token.value != Tok::Whitespace() {
+                        self.current_token = Some(token);
+                        break;
+                    } else {
+                        css_builder.push_str(&token.value.to_string());
+                    }
+                },
+                None => break,
+            }
+        }
+        CssElement::new(css_builder)
+    }
 
     fn parse_ruby_attributes(&mut self, element: &mut HtmlElement) {
         let mut id = "";
@@ -328,6 +355,32 @@ impl<'a> Parser<'a> {
                 None => break,
             }
         }
+    }
+
+    fn parse_silent_comment(&mut self, current_token: &Token) -> Html {
+        let starting_position = current_token.position;
+        let starting_line = current_token.line_number;
+        let mut text_builder = String::new();
+        self.tokens.next(); // advance past hashtag
+        let mut current = self.tokens.next();
+        let mut i = 0;
+        loop {
+            match current {
+                Some(token) => {
+                    if token.position >= starting_position {
+                        text_builder.push_str(&token.value.to_string());                    
+                    } else if token.value != Tok::Whitespace()
+                        && token.position == starting_position
+                    {
+                        self.current_token = current;
+                        break;
+                    }
+                }
+                None => break,
+            }
+            current = self.tokens.next();
+        }
+        Html::SilentComment(text_builder.to_string())
     }
 
     fn parse_attributes(&mut self, element: &mut HtmlElement) {

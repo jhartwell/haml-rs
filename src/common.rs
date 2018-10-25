@@ -6,3 +6,10 @@ pub fn does_tag_close(tag: &str) -> bool {
         _ => true,
     }
 }
+
+pub fn is_void_tag(tag: &str) -> bool {
+    match tag {
+        "meta" => true,
+        _ => false,
+    }
+}

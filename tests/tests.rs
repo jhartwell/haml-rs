@@ -29,28 +29,49 @@ fn all() -> Result<(), Error> {
 fn single() -> Result<(), Error> {
     let json = include_str!("tests.json");
     let tests: Tests = serde_json::from_str(&json)?;
-    // tests.run_test_by_name("a multiply nested silent comment with inconsistent indents");
-    tests.run_test_by_name("inside a textarea tag");
+    tests.run_test_by_name("a tag with multiple CSS classes");
     Ok(())
 }
 
-/*
- * This is used for testing all tests that have previously been fixed. This is
- * a regression of sorts so we make sure new fixes don't break previously fixed tests
- */
 #[test]
-fn completed() -> Result<(), Error> {
+fn completed_comments() -> Result<(), Error> {
     let json = include_str!("tests.json");
     let tests: Tests = serde_json::from_str(&json)?;
-    // Comments
+
     tests.run_test_by_name("a nested markup comment nested markup comment");
     tests.run_test_by_name("an inline markup comment");
+    tests.run_test_by_name("a multiply nested silent comment with inconsistent indents");
 
-    // Text
+    Ok(())
+}
+
+#[test]
+fn completed_text() -> Result<(), Error> {
+    let json = include_str!("tests.json");
+    let tests: Tests = serde_json::from_str(&json)?;
+
     tests.run_test_by_name("inside a textarea tag");
 
-    // tags
-    tests.run_test_by_name("a tag with '<' appended");
+    Ok(())
+}
+
+#[test]
+fn completed_tags() -> Result<(), Error> {
+    let json = include_str!("tests.json");
+    let tests: Tests = serde_json::from_str(&json)?;
+
     tests.run_test_by_name("a self-closing tag (XHTML)");
+    tests.run_test_by_name("a tag with multiple CSS classes");
+    
+    Ok(())
+}
+
+#[test]
+fn completed_filters() -> Result<(), Error> {
+    let json = include_str!("tests.json");
+    let tests: Tests = serde_json::from_str(&json)?;
+
+    tests.run_test_by_name("content in a 'css' filter (HTML)");
+
     Ok(())
 }
