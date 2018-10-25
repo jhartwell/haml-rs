@@ -52,6 +52,7 @@ pub enum Html {
     Text(String),
     Doctype(String),
     Element(HtmlElement),
+    SilentComment(String),
 }
 
 fn doctype_lookup(doctype: &str) -> String {
@@ -192,16 +193,21 @@ impl Arena {
                         html_builder.push_str(&format!(" {}=\'{}\'", key, value.join(" ")));
                     }
                 }
-                html_builder.push('>');
-                if ele.body != "" {
-                    html_builder.push_str(&ele.body);
-                }
-                for child_id in node.children() {
-                    html_builder.push_str(&format!("{}", self.node_to_html(*child_id)));
-                }
+                if ele.body.is_empty() {
+                    html_builder.push_str(" />");
+                } else {
+                    html_builder.push('>');
 
-                if common::does_tag_close(&ele.tag()) {
-                    html_builder.push_str(&format!("</{}>", ele.tag()));
+                    if !&ele.body.is_empty() {
+                        html_builder.push_str(&ele.body);
+                    }
+                    for child_id in node.children() {
+                        html_builder.push_str(&format!("{}", self.node_to_html(*child_id)));
+                    }
+                    match common::does_tag_close(&ele.tag) {
+                        true => html_builder.push_str(&format!("</{}>", ele.tag())),
+                        false => html_builder.push('>'),
+                    }
                 }
             }
             Html::Doctype(ref doctype) => {
@@ -215,6 +221,7 @@ impl Arena {
                 html_builder.push_str(&format!("<!--{}-->", comment))
             }
             Html::Text(ref text) => html_builder.push_str(&format!("{}", text)),
+            Html::SilentComment(_comment) => (),
         }
         if id == 0 {
             if let Some(sibling_id) = node.next_sibling() {

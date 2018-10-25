@@ -1,5 +1,6 @@
 use std::str::Chars;
 use values::Token;
+use std::iter::Peekable;
 
 pub struct Scanner<'a> {
     chars: Chars<'a>,
@@ -106,6 +107,7 @@ impl<'a> Iterator for Scanner<'a> {
             ']' => Some(Token::ClosedBrace()),
             ':' => Some(Token::Colon()),
             ',' => Some(Token::Comma()),
+            '-' => Some(Token::Dash()),
             c => {
                 let mut text_builder = String::new();
                 text_builder.push(c);

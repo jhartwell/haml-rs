@@ -29,7 +29,7 @@ fn all() -> Result<(), Error> {
 fn single() -> Result<(), Error> {
     let json = include_str!("tests.json");
     let tests: Tests = serde_json::from_str(&json)?;
-    tests.run_test_by_name("a tag with '<' appended");
+    tests.run_test_by_name("a multiply nested silent comment with inconsistent indents");
     Ok(())
 }
 
@@ -47,5 +47,9 @@ fn completed() -> Result<(), Error> {
 
     // Text
     tests.run_test_by_name("inside a textarea tag");
+
+    // tags
+    tests.run_test_by_name("a tag with '<' appended");
+    tests.run_test_by_name("a self-closing tag (XHTML)");
     Ok(())
 }

@@ -1,11 +1,14 @@
 use ast::{Arena, Html, HtmlElement};
 use std::slice::Iter;
+use std::iter::Peekable;
 use values::Token;
 
 pub struct Parser<'a> {
-    tokens: Iter<'a, Token>,
+    tokens: Peekable<Iter<'a, Token>>,
     arena: Arena,
     current_token: Option<&'a Token>,
+    current_position: u32,
+    fresh_line: bool,
 }
 
 pub struct Parsed(Option<Html>);
@@ -13,9 +16,11 @@ pub struct Parsed(Option<Html>);
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
         Parser {
-            tokens: tokens.iter(),
+            tokens: tokens.iter().peekable(),
             arena: Arena::new(),
             current_token: None,
+            current_position: 0,
+            fresh_line: true,
         }
     }
 
@@ -44,21 +49,27 @@ impl<'a> Parser<'a> {
     }
 
     fn next_text(&mut self) -> HtmlElement {
+        self.current_position += 1;
         match self.tokens.next() {
             Some(Token::Text(txt)) => {
-                println!("{}", txt);
-                let mut text: &str= txt;
+                let mut text: &str = txt;
                 if txt.ends_with("<") {
-                    println!("ends");
-                if let Some((i, _)) = txt.char_indices().rev().nth(1) {
-                    println!("in case: {}", i);
-                    text = &txt[..i];
+                    if let Some((i, _)) = txt.char_indices().rev().nth(0) {
+                        text = &txt[..i];
+                    }
                 }
-                }
-                println!("{}", text);
                 HtmlElement::new(text.to_string())
-            },
+            }
             _ => panic!("Expected text"),
+        }
+    }
+
+    fn next_token(&mut self) -> &Token {
+        let token = self.tokens.next();
+        if let Some(Token::EndLine()) = token {
+            self.current_position = 0;
+        } else {
+            self.current_position += 1;
         }
     }
 
@@ -67,9 +78,12 @@ impl<'a> Parser<'a> {
         let mut token: Option<&Token> = None;
         let mut just_added_element = false;
         let mut multi_line_element = false;
+        let mut current_position = 0;
+        let mut element_start_position: Option<u32> = None;
         loop {
             if self.current_token == None {
-                token = self.tokens.next();
+                token = self.next_token();
+                self.current_position += 1;
             } else {
                 token = self.current_token;
                 self.current_token = None;
@@ -79,12 +93,17 @@ impl<'a> Parser<'a> {
                     Token::PercentSign() => {
                         element = Some(Html::Element(self.next_text()));
                         just_added_element = true;
+                        element_start_position = Some(self.current_position);
                     }
                     Token::Period() => {
+                        element_start_position = Some(self.current_position);
                         let mut class = String::new();
                         let key = "class".to_string();
                         match self.tokens.next() {
-                            Some(Token::Text(txt)) => class = txt.to_string(),
+                            Some(Token::Text(txt)) => {
+                                self.current_position += 1;
+                                class = txt.to_string();
+                            },
                             _ => panic!("Expecting text value for class name"),
                         }
                         if let Some(Html::Element(ref mut el)) = element {
@@ -94,12 +113,21 @@ impl<'a> Parser<'a> {
                             el.add_attribute(key, class);
                             element = Some(Html::Element(el));
                         }
+                    },
+                    Token::Dash() => {
+                        self.parse_silent_comment();
+                        
                     }
                     Token::Hashtag() => {
                         let mut id = String::new();
                         let key = "id".to_string();
+                        self.current_position += 1;
+                        element_start_position = Some(self.current_position);
                         match self.tokens.next() {
-                            Some(Token::Text(txt)) => id = txt.to_string(),
+                            Some(Token::Text(txt)) => {
+                                self.current_position += 1;
+                                id = txt.to_string();
+                            },
                             _ => panic!("Expecting text value for id"),
                         }
                         if let Some(Html::Element(ref mut el)) = element {
@@ -111,6 +139,7 @@ impl<'a> Parser<'a> {
                         }
                     }
                     Token::OpenParen() => {
+                        self.current_position += 1;
                         if let Some(Html::Element(ref mut el)) = element {
                             self.parse_attributes(el);
                         } else {
@@ -122,7 +151,9 @@ impl<'a> Parser<'a> {
                         element = Some(comment);
                         break;
                     }
-                    Token::EndLine() => match element {
+                    Token::EndLine() => {
+                        self.current_position = 0;
+                        match element {
                         Some(Html::Element(ref mut el)) => {
                             if !just_added_element {
                                 el.body.push('\n');
@@ -130,8 +161,17 @@ impl<'a> Parser<'a> {
                                 just_added_element = false;
                             }
                         }
-                        _ => continue,
-                    },
+                        _ => {
+                            loop {
+                                if let Some(Token::Whitespace()) = self.tokens.peek() {
+                                    self.fresh_line = true;
+                                    self.tokens.next();
+                                    self.current_position += 1;
+                                }
+                            }
+                            if let Some(Token::Whitespace()) = self.tokens.peek() P
+                        },
+                    }},
                     Token::DocType() => loop {
                         match self.tokens.next() {
                             Some(Token::Text(ref text)) => {
@@ -179,6 +219,16 @@ impl<'a> Parser<'a> {
         Parsed(element)
     }
 
+    fn parse_silent_comment(&mut self) -> Html {
+        if let Some(Token::EndLine()) = self.current_token {
+                            element_start_position = Some(self.current_position);
+                            if let Some(Token::Hashtag()) = self.tokens.peek() {
+                                self.current_position += 1;
+                                self.tokens.next();
+                                element = Some(Html::SilentComment())
+                            }
+                        }
+    }
     fn parse_ruby_attributes(&mut self, element: &mut HtmlElement) {
         let mut id = "";
         loop {
@@ -187,13 +237,17 @@ impl<'a> Parser<'a> {
                     Token::ClosedCurlyBrace() => break,
                     Token::Colon() => {
                         match self.tokens.next() {
-                            Some(Token::Text(ref text)) => id = text,
+                            Some(Token::Text(ref text)) => {
+                                self.current_position += 1;
+                             id = text;
+                        }
                             Some(tok) => panic!(format!("Expected an identifier after a colon when parsing attributes but found {:?}", tok)),
                             None => panic!("Unexpected end of file when parsing attributes"),
                         }
                     }
                     Token::Arrow() => {
                         loop {
+                            self.current_position += 1;
                             match self.tokens.next() {
                                 Some(Token::Whitespace()) => continue,
                                 Some(Token::Text(ref value)) => {
@@ -205,6 +259,7 @@ impl<'a> Parser<'a> {
                                 },
                                 Some(Token::OpenBrace()) => {
                                     loop {
+                                        self.current_position += 1;
                                         match self.tokens.next() {
                                             Some(Token::Text(ref text)) => element.add_attribute(id.to_string(), text.to_string()),
                                             Some(Token::Whitespace()) => continue,
@@ -234,6 +289,7 @@ impl<'a> Parser<'a> {
         let mut at_id = true;
         let mut id = "";
         while let Some(tok) = self.tokens.next() {
+            self.current_position += 1;
             match tok {
                 Token::CloseParen() => break,
                 Token::Text(txt) => {
@@ -272,8 +328,10 @@ impl<'a> Parser<'a> {
         let mut has_newline = false;
         let mut last_token_newline = false;
         loop {
+            self.current_position += 1;
             match self.tokens.next() {
                 Some(Token::EndLine()) => {
+                    self.current_position = 0;
                     has_newline = true;
                     last_token_newline = true;
                     comment_builder.push('\n');

@@ -19,6 +19,7 @@ pub enum Token {
     OpenBrace(),
     ClosedBrace(),
     Comma(),
+    Dash(),
 }
 
 impl Token {
