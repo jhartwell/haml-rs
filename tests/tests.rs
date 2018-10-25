@@ -29,7 +29,8 @@ fn all() -> Result<(), Error> {
 fn single() -> Result<(), Error> {
     let json = include_str!("tests.json");
     let tests: Tests = serde_json::from_str(&json)?;
-    tests.run_test_by_name("a multiply nested silent comment with inconsistent indents");
+    // tests.run_test_by_name("a multiply nested silent comment with inconsistent indents");
+    tests.run_test_by_name("inside a textarea tag");
     Ok(())
 }
 

@@ -1,5 +1,22 @@
 #[derive(Debug, PartialEq, Clone)]
-pub enum Token {
+pub struct Token {
+    pub value: Tok,
+    pub position: u32,
+    pub line_number: u32,
+}
+
+impl Token {
+    pub fn new(tok: Tok, position: u32, line_number: u32) -> Token {
+        Token {
+            value: tok,
+            position,
+            line_number,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Tok {
     ForwardSlash(),
     Period(),
     Equal(),

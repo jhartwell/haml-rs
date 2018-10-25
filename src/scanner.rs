@@ -1,6 +1,6 @@
-use std::str::Chars;
-use values::Token;
 use std::iter::Peekable;
+use std::str::Chars;
+use values::{Tok, Token};
 
 pub struct Scanner<'a> {
     chars: Chars<'a>,
@@ -8,6 +8,8 @@ pub struct Scanner<'a> {
     tokens: Vec<Token>,
     is_quoted: bool,
     previous_token: Option<Token>,
+    current_position: u32,
+    current_line: u32,
 }
 
 impl<'a> Scanner<'a> {
@@ -19,6 +21,8 @@ impl<'a> Scanner<'a> {
             is_quoted: false,
             current_char: None,
             previous_token: None,
+            current_line: 1,
+            current_position: 0,
         }
     }
 
@@ -34,6 +38,20 @@ impl<'a> Scanner<'a> {
             }
         }
         &self.tokens
+    }
+
+    fn update(&mut self) -> (u32, u32) {
+        let current_position = self.current_position;
+        self.current_position += 1;
+        (current_position, self.current_line)
+    }
+
+    fn update_newline(&mut self) -> (u32, u32) {
+        let current_line = self.current_line;
+        let current_position = self.current_position;
+        self.current_line += 1;
+        self.current_position = 0;
+        (current_position, current_line)
     }
 }
 
@@ -53,29 +71,60 @@ impl<'a> Iterator for Scanner<'a> {
             }
         }
         let return_value = match current_char {
-            '\n' => Some(Token::EndLine()),
+            '\n' => {
+                let (current_position, current_line) = self.update_newline();
+                Some(Token::new(Tok::EndLine(), current_position, current_line))
+            }
             '\r' => match self.chars.next() {
-                Some('\n') => Some(Token::EndLine()),
+                Some('\n') => {
+                    let (current_position, current_line) = self.update_newline();
+                    Some(Token::new(Tok::EndLine(), current_position, current_line))
+                }
                 Some(ch) => {
+                    self.update();
                     self.current_char = Some(ch);
                     self.next()
                 }
                 None => None,
             },
-            '(' => Some(Token::OpenParen()),
-            ')' => Some(Token::CloseParen()),
+            '(' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(Tok::OpenParen(), current_position, current_line))
+            }
+            ')' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(
+                    Tok::CloseParen(),
+                    self.current_position,
+                    self.current_line,
+                ))
+            }
+
             '"' => {
+                self.update();
                 let mut text_builder = String::new();
                 let mut value: Option<Token> = None;
                 loop {
                     match self.chars.next() {
                         Some('"') => {
-                            value = Some(Token::Text(text_builder.to_string()));
+                            let (current_position, current_line) = self.update();
+                            value = Some(Token::new(
+                                Tok::Text(text_builder.to_string()),
+                                self.current_position,
+                                self.current_line,
+                            ));
                             break;
                         }
-                        Some(ch) => text_builder.push(ch),
+                        Some(ch) => {
+                            self.update();
+                            text_builder.push(ch);
+                        }
                         None => {
-                            value = Some(Token::Text(text_builder.to_string()));
+                            value = Some(Token::new(
+                                Tok::Text(text_builder.to_string()),
+                                self.current_position,
+                                self.current_line,
+                            ));
                             break;
                         }
                     }
@@ -83,35 +132,107 @@ impl<'a> Iterator for Scanner<'a> {
                 value
             }
             '=' => {
+                let (current_position, current_line) = self.update();
                 if let Some(ch) = self.chars.next() {
                     match ch {
-                        '>' => Some(Token::Arrow()),
+                        '>' => {
+                            let (current_position, current_line) = self.update();
+                            Some(Token::new(Tok::Arrow(), current_position, current_line))
+                        }
                         _ => {
+                            let (current_position, current_line) = self.update();
                             self.current_char = Some(ch);
-                            Some(Token::Equal())
+                            Some(Token::new(Tok::Equal(), current_position, current_line))
                         }
                     }
                 } else {
-                    Some(Token::Equal())
+                    Some(Token::new(Tok::Equal(), current_position, current_line))
                 }
             }
-            '/' => Some(Token::ForwardSlash()),
-            '%' => Some(Token::PercentSign()),
-            '.' => Some(Token::Period()),
-            ' ' => Some(Token::Whitespace()),
-            '@' => Some(Token::AtSymbol()),
-            '#' => Some(Token::Hashtag()),
-            '{' => Some(Token::OpenCurlyBrace()),
-            '}' => Some(Token::ClosedCurlyBrace()),
-            '[' => Some(Token::OpenBrace()),
-            ']' => Some(Token::ClosedBrace()),
-            ':' => Some(Token::Colon()),
-            ',' => Some(Token::Comma()),
-            '-' => Some(Token::Dash()),
+            '/' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(
+                    Tok::ForwardSlash(),
+                    current_position,
+                    current_line,
+                ))
+            }
+            '%' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(
+                    Tok::PercentSign(),
+                    current_position,
+                    current_line,
+                ))
+            }
+            '.' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(Tok::Period(), current_position, current_line))
+            }
+            ' ' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(
+                    Tok::Whitespace(),
+                    current_position,
+                    current_line,
+                ))
+            }
+            '@' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(Tok::AtSymbol(), current_position, current_line))
+            }
+            '#' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(Tok::Hashtag(), current_position, current_line))
+            }
+            '{' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(
+                    Tok::OpenCurlyBrace(),
+                    current_position,
+                    current_line,
+                ))
+            }
+            '}' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(
+                    Tok::ClosedCurlyBrace(),
+                    current_position,
+                    current_line,
+                ))
+            }
+            '[' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(Tok::OpenBrace(), current_position, current_line))
+            }
+            ']' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(
+                    Tok::ClosedBrace(),
+                    current_position,
+                    current_line,
+                ))
+            }
+            ':' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(Tok::Colon(), current_position, current_line))
+            }
+            ',' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(Tok::Comma(), current_position, current_line))
+            }
+            '-' => {
+                let (current_position, current_line) = self.update();
+                Some(Token::new(Tok::Dash(), current_position, current_line))
+            }
             c => {
                 let mut text_builder = String::new();
                 text_builder.push(c);
+
+                let (mut current_position, current_line) = self.update();
                 while let Some(next_char) = self.chars.next() {
+                    current_position += 1;
+                    self.update();
                     if self.is_quoted {
                         // This is quoted which means as long as we don't get another double quote we are
                         // to take every character and append as text
@@ -133,12 +254,20 @@ impl<'a> Iterator for Scanner<'a> {
                     }
                 }
                 if self.is_quoted {
-                    Some(Token::Text(text_builder))
+                    Some(Token::new(
+                        Tok::Text(text_builder),
+                        current_position,
+                        current_line,
+                    ))
                 } else {
                     if &text_builder == "!!!" {
-                        Some(Token::DocType())
+                        Some(Token::new(Tok::DocType(), current_position, current_line))
                     } else {
-                        Some(Token::Text(text_builder))
+                        Some(Token::new(
+                            Tok::Text(text_builder),
+                            current_position,
+                            current_line,
+                        ))
                     }
                 }
             }

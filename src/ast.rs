@@ -185,7 +185,7 @@ impl Arena {
     fn node_to_html(&self, id: usize) -> String {
         let mut html_builder = String::new();
         let node = self.node_at(id);
-        match node.data {
+        match &node.data {
             Html::Element(ref ele) => {
                 html_builder.push_str(&format!("<{}", ele.tag()));
                 for key in sort(ele.attributes().raw()) {
