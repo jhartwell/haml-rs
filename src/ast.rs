@@ -1,3 +1,4 @@
+use super::HtmlFormat;
 use common;
 use std::collections::HashMap;
 
@@ -128,13 +129,15 @@ impl HtmlElement {
 pub struct Arena {
     nodes: Vec<Node>,
     levels: HashMap<u32, usize>,
+    format: HtmlFormat,
 }
 
 impl Arena {
-    pub fn new() -> Arena {
+    pub fn new(format: HtmlFormat) -> Arena {
         Arena {
             nodes: vec![],
             levels: HashMap::new(),
+            format,
         }
     }
 

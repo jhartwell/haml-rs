@@ -1,3 +1,4 @@
+use super::HtmlFormat;
 use ast::{Arena, Html, HtmlElement, CssElement};
 use std::iter::Peekable;
 use std::slice::Iter;
@@ -14,10 +15,10 @@ pub struct Parser<'a> {
 pub struct Parsed(Option<Html>);
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
+    pub fn new(tokens: &'a Vec<Token>, format: HtmlFormat) -> Parser<'a> {
         Parser {
             tokens: tokens.iter().peekable(),
-            arena: Arena::new(),
+            arena: Arena::new(format),
             current_token: None,
             current_position: 0,
             fresh_line: true,
