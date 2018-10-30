@@ -293,3 +293,82 @@ fn sort(map: &HashMap<String, Vec<String>>) -> Vec<String> {
     v.sort();
     v
 }
+
+
+trait HtmlBuilder {
+    fn build(&self) -> String;
+    fn add_html(&mut self, Html);
+}
+
+struct Html5Builder {
+    html_items: Vec<Html>,
+    special_values: HashMap<String, String>,
+}
+
+impl Html5Builder {
+    pub fn new() -> Html5Builder {
+        let mut special_values = HashMap::new();
+        special_values.insert("input".to_string(), "checked".to_string());
+        Html5Builder {
+            html_items: vec![],
+            special_values,
+        }
+    }
+}
+
+impl HtmlBuilder for Html5Builder {
+    fn build(&self) -> String {
+        let mut html = String::new();
+        html
+    }
+
+    fn add_html(&mut self, html: Html) {
+        self.html_items.push(html);
+    }
+}
+
+struct Html4Builder {
+    html_items: Vec<Html>,
+}
+
+impl Html4Builder {
+    pub fn new() -> Html4Builder {
+        Html4Builder {
+            html_items: vec![],
+        }
+    }
+}
+
+impl HtmlBuilder for Html4Builder {
+    fn build(&self) -> String {
+        let mut html = String::new();
+        html
+    }
+
+    fn add_html(&mut self, html: Html) {
+        self.html_items.push(html);
+    }
+}
+
+struct XHtmlBuilder {
+    html_items: Vec<Html>,
+}
+
+impl XHtmlBuilder {
+    pub fn new() -> XHtmlBuilder {
+        XHtmlBuilder {
+            html_items: vec![],
+        }
+    }
+}
+
+impl HtmlBuilder for XHtmlBuilder {
+    fn build(&self) -> String {
+        let mut html = String::new();
+        html
+    }
+
+    fn add_html(&mut self, html: Html) {
+        self.html_items.push(html);
+    }
+}
