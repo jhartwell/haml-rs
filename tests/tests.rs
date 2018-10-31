@@ -62,7 +62,7 @@ fn completed_tags() -> Result<(), Error> {
 
     tests.run_test_by_name("a self-closing tag (XHTML)");
     tests.run_test_by_name("a tag with multiple CSS classes");
-    
+
     Ok(())
 }
 

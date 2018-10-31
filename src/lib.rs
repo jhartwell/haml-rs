@@ -27,21 +27,21 @@ pub enum HtmlFormat {
 /// *  `haml` - A string slice that contains the Haml to be converted to HTML
 /// *  `format` - A HtmlFormat enum that determines what kind of Html output
 /// will be generated
-/// 
+///
 /// ## Examples
-/// 
+///
 /// ### Converting Haml to Html5
 /// ```rust
 /// use haml;
 /// let html: String = haml::to_html("%span", Html5());
 /// ```
-/// 
+///
 /// ### Converting Haml to Html4
 /// ```rust
 /// use haml;
 /// let html: String = haml::to_html("%span", Html4());
 /// ```
-/// 
+///
 /// ### Converting Haml to xhtml
 /// ```rust
 /// use haml;
@@ -56,12 +56,12 @@ pub fn to_html(haml: &str, format: HtmlFormat) -> String {
 }
 
 /// Converts the Haml into an abstract syntax tree
-/// 
+///
 /// # Arguments
 /// *  `haml` - A string slice that contains the Haml to be parsed
-/// *  `format` - A HtmlFormat enum to determine what type of HTML 
+/// *  `format` - A HtmlFormat enum to determine what type of HTML
 /// output is generated
-/// 
+///
 /// ## Examples
 ///
 /// ### Creating an AST for HTML5
@@ -69,13 +69,13 @@ pub fn to_html(haml: &str, format: HtmlFormat) -> String {
 /// use haml;
 /// let ast = haml::to_ast("%span", Html5());
 /// ```
-/// 
+///
 /// ### Creating an AST for HTML4
 /// ```rust
 /// use haml;
 /// let ast = haml::to_ast("%span", Html4());
 /// ```
-/// 
+///
 /// ### Creating an AST for XHTML
 /// ```rust
 /// use haml;

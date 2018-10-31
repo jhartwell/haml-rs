@@ -90,9 +90,7 @@ pub struct CssElement {
 
 impl CssElement {
     pub fn new(text: String) -> CssElement {
-        CssElement {
-            text
-        }
+        CssElement { text }
     }
 }
 
@@ -191,17 +189,24 @@ impl Arena {
         ast_builder
     }
 
+    fn generate_attributes_html(&self, ele: &HtmlElement) -> String {
+        let mut attribute_builder = String::new();
+        for key in sort(ele.attributes().raw()) {
+            if let Some(ref value) = ele.attributes().raw().get(&key) {
+                attribute_builder.push_str(&format!(" {}=\'{}\'", key, value.join(" ")));
+            }
+        }
+        attribute_builder
+    }
+
     fn node_to_html(&self, id: usize) -> String {
         let mut html_builder = String::new();
         let node = self.node_at(id);
         match &node.data {
             Html::Element(ref ele) => {
                 html_builder.push_str(&format!("<{}", ele.tag()));
-                for key in sort(ele.attributes().raw()) {
-                    if let Some(ref value) = ele.attributes().raw().get(&key) {
-                        html_builder.push_str(&format!(" {}=\'{}\'", key, value.join(" ")));
-                    }
-                }
+                let attribute_html = self.generate_attributes_html(ele);
+                html_builder.push_str(&attribute_html);
                 if ele.body.is_empty() && common::is_void_tag(&ele.tag) {
                     html_builder.push_str(" />");
                 } else {
@@ -228,10 +233,10 @@ impl Arena {
                     comment.push(' ');
                 }
                 html_builder.push_str(&format!("<!--{}-->", comment))
-            },
+            }
             Html::Css(ref css) => {
                 println!("css");
-             html_builder.push_str(&format!("<style>{}</style>\n", css.text));
+                html_builder.push_str(&format!("<style>{}</style>\n", css.text));
             }
             Html::Text(ref text) => html_builder.push_str(&format!("{}", text)),
             Html::SilentComment(_comment) => (),
@@ -294,7 +299,6 @@ fn sort(map: &HashMap<String, Vec<String>>) -> Vec<String> {
     v
 }
 
-
 trait HtmlBuilder {
     fn build(&self) -> String;
     fn add_html(&mut self, Html);
@@ -333,9 +337,7 @@ struct Html4Builder {
 
 impl Html4Builder {
     pub fn new() -> Html4Builder {
-        Html4Builder {
-            html_items: vec![],
-        }
+        Html4Builder { html_items: vec![] }
     }
 }
 
@@ -356,9 +358,7 @@ struct XHtmlBuilder {
 
 impl XHtmlBuilder {
     pub fn new() -> XHtmlBuilder {
-        XHtmlBuilder {
-            html_items: vec![],
-        }
+        XHtmlBuilder { html_items: vec![] }
     }
 }
 

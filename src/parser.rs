@@ -1,5 +1,5 @@
 use super::HtmlFormat;
-use ast::{Arena, Html, HtmlElement, CssElement};
+use ast::{Arena, CssElement, Html, HtmlElement};
 use std::iter::Peekable;
 use std::slice::Iter;
 use values::{Tok, Token};
@@ -69,7 +69,7 @@ impl<'a> Parser<'a> {
                     let mut element = HtmlElement::new(tag.to_string());
                     if !classes.is_empty() {
                         for class in classes {
-                            element.add_attribute("class".to_string(),  class.to_string());
+                            element.add_attribute("class".to_string(), class.to_string());
                         }
                     }
                     element
@@ -162,18 +162,16 @@ impl<'a> Parser<'a> {
                         element = Some(comment);
                         break;
                     }
-                    Tok::EndLine() => {
-                        match element {
-                            Some(Html::Element(ref mut el)) => {
-                                if !just_added_element {
-                                    el.body.push('\n');
-                                } else {
-                                    just_added_element = false;
-                                }
+                    Tok::EndLine() => match element {
+                        Some(Html::Element(ref mut el)) => {
+                            if !just_added_element {
+                                el.body.push('\n');
+                            } else {
+                                just_added_element = false;
                             }
-                            _ => ()
                         }
-                    }
+                        _ => (),
+                    },
                     Tok::DocType() => loop {
                         match self.tokens.next() {
                             Some(token) => match &token.value {
@@ -194,14 +192,14 @@ impl<'a> Parser<'a> {
                         self.tokens.next();
                         if let Some(token) = token {
                             match token.value {
-                               Tok::Text(ref text) => {
+                                Tok::Text(ref text) => {
                                     if text == "css" {
                                         element = Some(Html::Css(self.parse_css_filter(tok)));
                                         break;
                                     } else {
                                         self.current_token = Some(token);
                                     }
-                                },
+                                }
                                 _ => self.current_token = Some(token),
                             }
                         }
@@ -277,13 +275,14 @@ impl<'a> Parser<'a> {
         loop {
             match self.tokens.next() {
                 Some(token) => {
-                    if token.position == previous_token.position && token.value != Tok::Whitespace() {
+                    if token.position == previous_token.position && token.value != Tok::Whitespace()
+                    {
                         self.current_token = Some(token);
                         break;
                     } else {
                         css_builder.push_str(&token.value.to_string());
                     }
-                },
+                }
                 None => break,
             }
         }
@@ -369,7 +368,7 @@ impl<'a> Parser<'a> {
             match current {
                 Some(token) => {
                     if token.position >= starting_position {
-                        text_builder.push_str(&token.value.to_string());                    
+                        text_builder.push_str(&token.value.to_string());
                     } else if token.value != Tok::Whitespace()
                         && token.position == starting_position
                     {
@@ -454,167 +453,5 @@ impl<'a> Parser<'a> {
             comment_builder.push('\n');
         }
         Html::Comment(comment_builder.to_string())
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use scanner::Scanner;
-
-    #[test]
-    fn test_basic_element() {
-        let haml = "%span";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
-        let arena = parser.parse();
-
-        let node = arena.node_at(0);
-        assert_eq!(None, node.next_sibling());
-        assert_eq!(0, node.children().len());
-    }
-
-    #[test]
-    fn test_basic_children() {
-        let haml = "%span\n  %a";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
-        let arena = parser.parse();
-
-        let node = arena.node_at(0);
-        assert_eq!(None, node.next_sibling());
-        assert_eq!(1, node.children().len());
-
-        let child_id = node.children().iter().nth(0).unwrap();
-        let child_node = arena.node_at(*child_id);
-        assert_eq!(None, child_node.next_sibling());
-        assert_eq!(0, child_node.children().len());
-    }
-
-    #[test]
-    fn test_nested_children() {
-        let haml = "%div\n  %span\n    %a";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
-        let arena = parser.parse();
-
-        let node = arena.node_at(0);
-        assert_eq!(None, node.next_sibling());
-        assert_eq!(1, node.children().len());
-
-        let child_id = *node.children().iter().nth(0).unwrap();
-        let child_node = arena.node_at(child_id);
-        assert_eq!(None, child_node.next_sibling());
-        assert_eq!(1, child_node.children().len());
-
-        let grandchild_id = *child_node.children().iter().nth(0).unwrap();
-        let grandchild_node = arena.node_at(grandchild_id);
-        assert_eq!(None, grandchild_node.next_sibling());
-        assert_eq!(0, grandchild_node.children().len());
-    }
-
-    #[test]
-    fn test_siblings() {
-        let haml = "%div\n  %span\n  %a";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
-        let arena = parser.parse();
-
-        let node = arena.node_at(0);
-        assert_eq!(None, node.next_sibling());
-        assert_eq!(2, node.children().len());
-
-        let child_id1 = *node.children().iter().nth(0).unwrap();
-        let child_node1 = arena.node_at(child_id1);
-        assert_eq!(Some(2), child_node1.next_sibling());
-        assert_eq!(0, child_node1.children().len());
-
-        let child_id2 = child_node1.next_sibling().unwrap();
-        let child_node2 = arena.node_at(child_id2);
-        assert_eq!(None, child_node2.next_sibling());
-        assert_eq!(0, child_node2.children().len());
-    }
-
-    #[test]
-    fn test_comment() {
-        let haml = "/ comment";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
-        let arena = parser.parse();
-
-        let node = arena.node_at(0);
-        assert_eq!(None, node.next_sibling());
-        assert_eq!(0, node.children().len());
-    }
-
-    #[test]
-    fn test_nested_text() {
-        let haml = "%span\n  text";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
-        let arena = parser.parse();
-
-        let node = arena.node_at(0);
-        assert_eq!(None, node.next_sibling());
-        assert_eq!(1, node.children().len());
-    }
-
-    #[test]
-    fn test_doctype() {
-        let haml = "!!! 5";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
-        let arena = parser.parse();
-
-        let node = arena.node_at(0);
-        assert_eq!(None, node.next_sibling());
-        assert_eq!(0, node.children().len());
-    }
-
-    #[test]
-    fn test_ruby_attribute() {
-        let haml = "%span{:id => \"test\"}";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
-        let arena = parser.parse();
-
-        let node = arena.node_at(0);
-        assert_eq!(None, node.next_sibling());
-        assert_eq!(0, node.children().len());
-    }
-
-    #[test]
-    fn test_ruby_attributes() {
-        let haml = "%span{:id => \"test\", :class => \"container\"}";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
-        let arena = parser.parse();
-
-        let node = arena.node_at(0);
-        assert_eq!(None, node.next_sibling());
-        assert_eq!(0, node.children().len());
-    }
-
-    #[test]
-    fn test_ruby_attributes_with_array() {
-        let haml = "%span{:id => \"test\", :class => [\"container\", \"box\"]}";
-        let mut scanner = Scanner::new(haml);
-        let tokens = scanner.get_tokens();
-        let mut parser = Parser::new(tokens);
-
-        let arena = parser.parse();
-
-        let node = arena.node_at(0);
-        assert_eq!(None, node.next_sibling());
-        assert_eq!(0, node.children().len());
     }
 }

@@ -1,4 +1,5 @@
 use haml;
+use haml::HtmlFormat;
 use std::collections::HashMap;
 pub type Tests = HashMap<String, HashMap<String, Test>>;
 
@@ -36,19 +37,28 @@ pub struct Test {
 }
 
 impl Test {
+    fn get_format(&self) -> HtmlFormat {
+        let default_format = HtmlFormat::Html5();
+        match self.config {
+            Some(ref config) => match config.format {
+                Some(ref format) => match format.as_ref() {
+                    "xhtml" => HtmlFormat::XHtml(),
+                    "html" => HtmlFormat::Html4(),
+                    "html5" => HtmlFormat::Html5(),
+                    _ => default_format,
+                },
+                _ => default_format,
+            },
+            _ => default_format,
+        }
+    }
+
     pub fn run(&self, name: &str) {
         match self.optional {
             Some(true) => return,
             _ => {
-                let config = match self.config {
-                    Some(ref config) => match config.format {
-                        Some(ref format) => format.to_string(),
-                        _ => "".to_string(),
-                    },
-                    _ => "".to_string(),
-                };
-                println!("format: {}, section: {}, haml: {}", config, name, self.haml);
-                let actual_html = haml::to_html(&self.haml);
+                let format = self.get_format();
+                let actual_html = haml::to_html(&self.haml, format);
                 assert_eq!(self.html, actual_html);
             }
         }
