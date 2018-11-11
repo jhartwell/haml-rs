@@ -15,10 +15,10 @@ pub struct Parser<'a> {
 pub struct Parsed(Option<Html>);
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: &'a Vec<Token>, format: HtmlFormat) -> Parser<'a> {
+    pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
         Parser {
             tokens: tokens.iter().peekable(),
-            arena: Arena::new(format),
+            arena: Arena::new(),
             current_token: None,
             current_position: 0,
             fresh_line: true,

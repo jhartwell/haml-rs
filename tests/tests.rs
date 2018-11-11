@@ -29,7 +29,7 @@ fn all() -> Result<(), Error> {
 fn single() -> Result<(), Error> {
     let json = include_str!("tests.json");
     let tests: Tests = serde_json::from_str(&json)?;
-    tests.run_test_by_name("a tag with multiple CSS classes");
+    tests.run_test_by_name("boolean attribute with HTML");
     Ok(())
 }
 
