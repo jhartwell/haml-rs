@@ -2,22 +2,15 @@ use super::HtmlFormat;
 use ast::{Arena, Html, HtmlElement, Node};
 use common;
 use std::collections::HashMap;
+use std::hash::Hash;
 
 type Handler = fn(&HtmlElement) -> String;
-type Section = HashMap<String, SectionHandler>;
 
-struct SectionHandler {
-    pub section: String,
-    pub cases: HashMap<String, Handler>,
-}
-
-impl SectionHandler {
-    pub fn new(section: String) -> SectionHandler {
-        SectionHandler {
-            section,
-            cases: HashMap::new()
-        }
-    }
+#[derive(PartialEq, Eq, Hash)]
+enum SectionType {
+    Element(),
+    Attributes(),
+    Closing(),
 }
 
 pub fn to_html(arena: &Arena, format: HtmlFormat) -> String {
@@ -30,43 +23,76 @@ pub fn to_html(arena: &Arena, format: HtmlFormat) -> String {
 }
 
 fn generate_html5(arena: &Arena) -> String {
-    let mut special_cases = HashMap::new();
-    special_cases.insert("input".to_string(), html5_input as Handler);
-    node_to_html(0, arena, &special_cases)
+    let mut sections = HashMap::new();
+    let mut attribute_section_handler = HashMap::new();
+    attribute_section_handler.insert("input".to_string(), html5_input_attributes as Handler);
+    let mut closing_section_handler = HashMap::new();
+    closing_section_handler.insert("input".to_string(), html5_input_closing as Handler);
+    sections.insert(SectionType::Attributes(), attribute_section_handler);
+    sections.insert(SectionType::Closing(), closing_section_handler);
+    
+    node_to_html(0, arena, &sections)
 }
 
-fn html5_input(element: &HtmlElement) -> String {
-    String::new()
+fn html5_input_attributes(ele: &HtmlElement) -> String {
+    let mut attribute_builder = String::new();
+    for key in sort(ele.attributes().raw()) {
+        if let Some(ref value) = ele.attributes().raw().get(&key) {
+            let attribute = match &key[..] {
+                "checked" => " checked".to_string(),
+                _ => format!(" {}={}", key, value.join(" ")),
+            };
+            attribute_builder.push_str(&attribute);
+        }
+    }
+    attribute_builder
+}
+
+fn html5_input_closing(_ele: &HtmlElement) -> String {
+    ">".to_string()   
+}
+
+fn xhtml_input_closing(_ele: &HtmlElement) -> String {
+    " />".to_string()
+}
+
+fn xhtml_input_attributes(ele: &HtmlElement) -> String {
+    let mut attribute_builder = String::new();
+    for key in sort(ele.attributes().raw()) {
+        if let Some(ref value) = ele.attributes().raw().get(&key) {
+            let attribute = match &key[..] {
+                "checked" => format!(" checked='checked'"),
+                _ => format!(" {}={}", key, value.join(" ")),
+            };
+            attribute_builder.push_str(&attribute);
+        }
+    }
+    attribute_builder
 }
 
 
-fn html5_attributes(ele: &HtmlElement) -> String {
-    // let mut attribute_builder = String::new();
-    // for key in sort(ele.attributes().raw()) {
-    //     if let Some(ref value) = ele.attributes().raw().get(&key) {
-    //         let attribute = match key {
-    //             "checked" => " checked",
-    //             _ => &format!(" {}=\'{}\'", key, value.join(" ")),
-    //         };
-    //         attribute_builder.push_str(&format!(" {}=\'{}\'", key, value.join(" ")));
-    //     }
-    // }
-    // attribute_builder
-    String::new()
-}
 fn generate_html4(arena: &Arena) -> String {
     node_to_html(0, arena, &HashMap::new())
 }
 
 fn generate_xhtml(arena: &Arena) -> String {
-    node_to_html(0, arena, &HashMap::new())
+    let mut sections = HashMap::new();
+    let mut attribute_section_handler = HashMap::new();
+    attribute_section_handler.insert("input".to_string(), xhtml_input_attributes as Handler);
+    sections.insert(SectionType::Attributes(), attribute_section_handler);
+
+    let mut closing_section_handler = HashMap::new();
+    closing_section_handler.insert("input".to_string(), xhtml_input_closing as Handler);
+    sections.insert(SectionType::Closing(), closing_section_handler);
+
+    node_to_html(0, arena, &sections)
 }
 
 fn generate_attributes_html(ele: &HtmlElement) -> String {
     let mut attribute_builder = String::new();
     for key in sort(ele.attributes().raw()) {
         if let Some(ref value) = ele.attributes().raw().get(&key) {
-            attribute_builder.push_str(&format!(" {}=\'{}\'", key, value.join(" ")));
+            attribute_builder.push_str(&format!(" {}={}", key, value.join(" ")));
         }
     }
     attribute_builder
@@ -81,33 +107,64 @@ fn sort(map: &HashMap<String, Vec<String>>) -> Vec<String> {
     v
 }
 
-fn node_to_html(id: usize, arena: &Arena, special_cases: &HashMap<String, Handler>) -> String {
+fn node_to_html(
+    id: usize,
+    arena: &Arena,
+    special_cases: &HashMap<SectionType, HashMap<String, Handler>>,
+) -> String {
     let mut html_builder = String::new();
     let node = arena.node_at(id);
     match &node.data {
         Html::Element(ref ele) => {
-            if let Some(handler) = special_cases.get(ele.tag()) {
-                html_builder.push_str(&handler(ele));
-            } else {
-            html_builder.push_str(&format!("<{}", ele.tag()));
-            let attribute_html = generate_attributes_html(ele);
-            html_builder.push_str(&attribute_html);
-            if ele.body.is_empty() && common::is_void_tag(&ele.tag) {
-                html_builder.push_str(" />");
-            } else {
-                html_builder.push('>');
-
-                if !&ele.body.is_empty() {
-                    html_builder.push_str(&ele.body);
-                }
-                for child_id in node.children() {
-                    html_builder.push_str(&format!("{}", node_to_html(*child_id, arena, special_cases)));
-                }
-                match common::does_tag_close(&ele.tag) {
-                    true => html_builder.push_str(&format!("</{}>", ele.tag())),
-                    false => html_builder.push('>'),
+            let mut handled = false;
+            if let Some(ref handlers) = special_cases.get(&SectionType::Element()) {
+                if let Some(special) = handlers.get(ele.tag()) {
+                    handled = true;
+                    html_builder.push_str(&special(ele));
                 }
             }
+            if !handled {
+                html_builder.push_str(&format!("<{}", ele.tag()));
+                let mut attributes_handled = false;
+                let mut attributes_html = String::new();
+                if let Some(ref handlers) = special_cases.get(&SectionType::Attributes()) {
+                    if let Some(special) = handlers.get(ele.tag()) {
+                        attributes_handled = true;
+                        attributes_html = special(ele);
+                    }
+                }
+                if !attributes_handled {
+                    attributes_html = generate_attributes_html(ele);
+                }
+                html_builder.push_str(&attributes_html);
+                let mut handled_closing = false;
+                if let Some(closing_handler) = special_cases.get(&SectionType::Closing()) {
+                    if let Some(handler) = closing_handler.get(ele.tag()) {
+                        handled_closing = true;
+                        html_builder.push_str(&handler(ele));
+                    }
+                }
+                if !handled_closing {
+                if ele.body.is_empty() && common::is_void_tag(&ele.tag) {
+                    html_builder.push_str(" />");
+                } else {
+                    html_builder.push('>');
+
+                    if !&ele.body.is_empty() {
+                        html_builder.push_str(&ele.body);
+                    }
+                    for child_id in node.children() {
+                        html_builder.push_str(&format!(
+                            "{}",
+                            node_to_html(*child_id, arena, special_cases)
+                        ));
+                    }
+                    match common::does_tag_close(&ele.tag) {
+                        true => html_builder.push_str(&format!("</{}>", ele.tag())),
+                        false => html_builder.push('>'),
+                    }
+                }
+                }
             }
         }
         Html::Doctype(ref doctype) => {
@@ -128,7 +185,10 @@ fn node_to_html(id: usize, arena: &Arena, special_cases: &HashMap<String, Handle
     }
     if id == 0 {
         if let Some(sibling_id) = node.next_sibling() {
-            html_builder.push_str(&format!("{}", node_to_html(sibling_id, arena, special_cases)));
+            html_builder.push_str(&format!(
+                "{}",
+                node_to_html(sibling_id, arena, special_cases)
+            ));
         }
     }
 

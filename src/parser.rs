@@ -109,7 +109,7 @@ impl<'a> Parser<'a> {
                             None => continue,
                         }
                         if let Some(Html::Element(ref mut el)) = element {
-                            el.add_attribute(key, class);
+                            el.add_attribute(key, format!("'{}'",class));
                         } else {
                             let mut el = HtmlElement::new("div".to_string());
                             el.add_attribute(key, class);

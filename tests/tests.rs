@@ -29,7 +29,7 @@ fn all() -> Result<(), Error> {
 fn single() -> Result<(), Error> {
     let json = include_str!("tests.json");
     let tests: Tests = serde_json::from_str(&json)?;
-    tests.run_test_by_name("boolean attribute with HTML");
+    tests.run_test_by_name("a tag with multiple CSS classes");
     Ok(())
 }
 
@@ -62,7 +62,27 @@ fn completed_tags() -> Result<(), Error> {
 
     tests.run_test_by_name("a self-closing tag (XHTML)");
     tests.run_test_by_name("a tag with multiple CSS classes");
+    
 
+    Ok(())
+}
+
+#[test]
+fn completed_boolean_attributes() -> Result<(), Error> {
+    let json = include_str!("tests.json");
+    let tests: Tests = serde_json::from_str(&json)?;
+
+    tests.run_test_by_name("boolean attribute with HTML");
+    tests.run_test_by_name("boolean attribute with XHTML");
+    Ok(())
+}
+
+#[test]
+fn completed_html_style_attributes() -> Result<(), Error> {
+    let json = include_str!("tests.json");
+    let tests: Tests = serde_json::from_str(&json)?;
+
+    tests.run_test_by_name("HTML-style multiple attributes");
     Ok(())
 }
 
