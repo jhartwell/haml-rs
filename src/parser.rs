@@ -16,6 +16,7 @@ pub struct Parsed(Option<Html>);
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
+        println!("{:?}", tokens.iter().peekable());
         Parser {
             tokens: tokens.iter().peekable(),
             arena: Arena::new(),
@@ -109,7 +110,7 @@ impl<'a> Parser<'a> {
                             None => continue,
                         }
                         if let Some(Html::Element(ref mut el)) = element {
-                            el.add_attribute(key, format!("'{}'",class));
+                            el.add_attribute(key, format!("{}",class));
                         } else {
                             let mut el = HtmlElement::new("div".to_string());
                             el.add_attribute(key, class);

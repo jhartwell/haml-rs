@@ -90,9 +90,10 @@ fn generate_xhtml(arena: &Arena) -> String {
 
 fn generate_attributes_html(ele: &HtmlElement) -> String {
     let mut attribute_builder = String::new();
+    println!("{:?}", ele.attributes().raw());
     for key in sort(ele.attributes().raw()) {
         if let Some(ref value) = ele.attributes().raw().get(&key) {
-            attribute_builder.push_str(&format!(" {}={}", key, value.join(" ")));
+            attribute_builder.push_str(&format!(" {}='{}'", key, value.join(" ")));
         }
     }
     attribute_builder

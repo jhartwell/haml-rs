@@ -98,7 +98,8 @@ impl HtmlElement {
     }
 
     pub fn add_attribute(&mut self, key: String, value: String) {
-        self.attributes.add(key, value);
+        let clean_value = value.replace("'", " ").trim().to_string();
+        self.attributes.add(key, clean_value);
     }
 }
 
