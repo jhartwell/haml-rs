@@ -9,13 +9,18 @@ use serde_json::Error;
 mod common;
 use common::{TestCollection, Tests};
 
+fn load_json() -> Result<Tests, Error> {
+    let json = include_str!("tests.json");
+    let tests: Tests = serde_json::from_str(&json)?;
+    Ok(tests)
+}
+
 /*
  * Run all non-optional tests in the json file
  */
 #[test]
 fn all() -> Result<(), Error> {
-    let json = include_str!("tests.json");
-    let tests: Tests = serde_json::from_str(&json)?;
+    let tests = load_json()?;
     tests.run();
     Ok(())
 }
@@ -27,16 +32,20 @@ fn all() -> Result<(), Error> {
  */
 #[test]
 fn single() -> Result<(), Error> {
-    let json = include_str!("tests.json");
-    let tests: Tests = serde_json::from_str(&json)?;
-    tests.run_test_by_name("Nested content tag with CSS");
+    let tests = load_json()?;
+    tests.run_test_by_name("Nested content multiple simple tags");
     Ok(())
 }
 
 #[test]
+fn completed_nested_content() -> Result<(), Error> {
+    let tests = load_json()?;
+    tests.run_test_by_name("Nested content tag with CSS");
+    Ok(())
+}
+#[test]
 fn completed_comments() -> Result<(), Error> {
-    let json = include_str!("tests.json");
-    let tests: Tests = serde_json::from_str(&json)?;
+    let tests = load_json()?;
 
     tests.run_test_by_name("a nested markup comment nested markup comment");
     tests.run_test_by_name("an inline markup comment");
@@ -47,8 +56,7 @@ fn completed_comments() -> Result<(), Error> {
 
 #[test]
 fn completed_text() -> Result<(), Error> {
-    let json = include_str!("tests.json");
-    let tests: Tests = serde_json::from_str(&json)?;
+    let tests = load_json()?;
 
     tests.run_test_by_name("inside a textarea tag");
 
@@ -57,8 +65,7 @@ fn completed_text() -> Result<(), Error> {
 
 #[test]
 fn completed_tags() -> Result<(), Error> {
-    let json = include_str!("tests.json");
-    let tests: Tests = serde_json::from_str(&json)?;
+    let tests = load_json()?;
 
     tests.run_test_by_name("a self-closing tag (XHTML)");
     tests.run_test_by_name("a tag with multiple CSS classes");
@@ -69,8 +76,7 @@ fn completed_tags() -> Result<(), Error> {
 
 #[test]
 fn completed_boolean_attributes() -> Result<(), Error> {
-    let json = include_str!("tests.json");
-    let tests: Tests = serde_json::from_str(&json)?;
+    let tests = load_json()?;
 
     tests.run_test_by_name("boolean attribute with HTML");
     tests.run_test_by_name("boolean attribute with XHTML");
@@ -79,8 +85,7 @@ fn completed_boolean_attributes() -> Result<(), Error> {
 
 #[test]
 fn completed_html_style_attributes() -> Result<(), Error> {
-    let json = include_str!("tests.json");
-    let tests: Tests = serde_json::from_str(&json)?;
+    let tests = load_json()?;
 
     tests.run_test_by_name("HTML-style multiple attributes");
     Ok(())
@@ -88,8 +93,7 @@ fn completed_html_style_attributes() -> Result<(), Error> {
 
 #[test]
 fn completed_filters() -> Result<(), Error> {
-    let json = include_str!("tests.json");
-    let tests: Tests = serde_json::from_str(&json)?;
+    let tests = load_json()?;
 
     tests.run_test_by_name("content in a 'css' filter (HTML)");
 

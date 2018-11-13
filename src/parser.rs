@@ -16,7 +16,6 @@ pub struct Parsed(Option<Html>);
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
-        println!("{:?}", tokens.iter().peekable());
         Parser {
             tokens: tokens.iter().peekable(),
             arena: Arena::new(),
@@ -89,7 +88,9 @@ impl<'a> Parser<'a> {
         let mut element_start_position: Option<u32> = None;
         loop {
             match self.tokens.next() {
-                Some(tok) => match &tok.value {
+                Some(tok) => {
+                    println!("{:?}", tok);
+                    match &tok.value {
                     Tok::PercentSign() => {
                         element = Some(Html::Element(self.next_text()));
                         just_added_element = true;
@@ -165,11 +166,9 @@ impl<'a> Parser<'a> {
                     }
                     Tok::EndLine() => match element {
                         Some(Html::Element(ref mut el)) => {
-                            if !just_added_element {
+                            if requires_newline(&el.tag()) {
                                 el.body.push('\n');
-                            } else {
-                                just_added_element = false;
-                            }
+                            } 
                         }
                         _ => (),
                     },
@@ -264,7 +263,7 @@ impl<'a> Parser<'a> {
                         }
                     }
                     t => panic!(format!("Unsupported feature: {:?}", t)),
-                },
+                }},
                 None => break,
             }
         }
@@ -454,5 +453,12 @@ impl<'a> Parser<'a> {
             comment_builder.push('\n');
         }
         Html::Comment(comment_builder.to_string())
+    }
+}
+
+fn requires_newline(tag: &str) -> bool {
+    match tag {
+        "p" => true,
+        _ => false,
     }
 }

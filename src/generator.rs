@@ -27,10 +27,12 @@ fn generate_html5(arena: &Arena) -> String {
     let mut attribute_section_handler = HashMap::new();
     attribute_section_handler.insert("input".to_string(), html5_input_attributes as Handler);
     let mut closing_section_handler = HashMap::new();
+
     closing_section_handler.insert("input".to_string(), html5_input_closing as Handler);
+    closing_section_handler.insert("p".to_string(), html5_p_closing as Handler);
+
     sections.insert(SectionType::Attributes(), attribute_section_handler);
     sections.insert(SectionType::Closing(), closing_section_handler);
-    
     node_to_html(0, arena, &sections)
 }
 
@@ -46,6 +48,13 @@ fn html5_input_attributes(ele: &HtmlElement) -> String {
         }
     }
     attribute_builder
+}
+
+fn html5_p_closing(ele: &HtmlElement) -> String {
+    match ele.body.as_ref() {
+        "" => "></p>".to_string(),
+        _ => format!(">{}\n</p>", ele.body),
+    }
 }
 
 fn html5_input_closing(_ele: &HtmlElement) -> String {
@@ -90,7 +99,6 @@ fn generate_xhtml(arena: &Arena) -> String {
 
 fn generate_attributes_html(ele: &HtmlElement) -> String {
     let mut attribute_builder = String::new();
-    println!("{:?}", ele.attributes().raw());
     for key in sort(ele.attributes().raw()) {
         if let Some(ref value) = ele.attributes().raw().get(&key) {
             attribute_builder.push_str(&format!(" {}='{}'", key, value.join(" ")));
@@ -192,7 +200,6 @@ fn node_to_html(
             ));
         }
     }
-
     html_builder
 }
 
