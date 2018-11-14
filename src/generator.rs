@@ -1,5 +1,5 @@
 use super::HtmlFormat;
-use ast::{Arena, Html, HtmlElement, Node};
+use ast::{Arena, Html, HtmlElement, Node, ToHtml};
 use common;
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -13,16 +13,78 @@ enum SectionType {
     Closing(),
 }
 
+enum GenerationType<'a> {
+    Arena(&'a Arena),
+    Element(&'a HtmlElement)
+}
+
+pub fn element_to_html(ele: &HtmlElement, special_cases: &HashMap<SectionType, HashMap<String, Handler>>)-> String {
+    let mut html_builder = String::new();
+        let mut handled = false;
+            if let Some(ref handlers) = special_cases.get(&SectionType::Element()) {
+                if let Some(special) = handlers.get(ele.tag()) {
+                    handled = true;
+                    html_builder.push_str(&special(ele));
+                }
+            }
+            if !handled {
+                html_builder.push_str(&format!("<{}", ele.tag()));
+                let mut attributes_handled = false;
+                let mut attributes_html = String::new();
+                if let Some(ref handlers) = special_cases.get(&SectionType::Attributes()) {
+                    if let Some(special) = handlers.get(ele.tag()) {
+                        attributes_handled = true;
+                        attributes_html = special(ele);
+                    }
+                }
+                if !attributes_handled {
+                    attributes_html = generate_attributes_html(ele);
+                }
+                html_builder.push_str(&attributes_html);
+                let mut handled_closing = false;
+                if let Some(closing_handler) = special_cases.get(&SectionType::Closing()) {
+                    if let Some(handler) = closing_handler.get(ele.tag()) {
+                        handled_closing = true;
+                        html_builder.push_str(&handler(ele));
+                    }
+                }
+                if !handled_closing {
+                    if ele.children.is_empty() && common::is_void_tag(&ele.tag) {
+                        html_builder.push_str(" />");
+                    }
+                     else {
+                        html_builder.push('>');
+
+                        if !&ele.children.is_empty() {
+                            html_builder.push_str(&ele.body);
+                        }
+                for Some(child) in ele.children {
+                    match child {
+                        Html::Element(ref child) => html_builder.push_str(&element_to_html(child, special_cases)),
+                        _ => (),
+                    }                    
+                }
+                        match common::does_tag_close(&ele.tag) {
+                            true => html_builder.push_str(&format!("</{}>", ele.tag())),
+                            false => html_builder.push('>'),
+                        }
+                    }
+                }
+            }
+                html_builder
+            
+
+}
 pub fn to_html(arena: &Arena, format: HtmlFormat) -> String {
     match format {
-        HtmlFormat::Html5() => generate_html5(arena),
-        HtmlFormat::Html4() => generate_html4(arena),
-        HtmlFormat::XHtml() => generate_xhtml(arena),
-        _ => generate_html5(arena),
+        HtmlFormat::Html5() => generate_html5(GenerationType::Arena(arena)),
+        HtmlFormat::Html4() => generate_html4(GenerationType::Arena(arena)),
+        HtmlFormat::XHtml() => generate_xhtml(GenerationType::Arena(arena)),
+        _ => generate_html5(GenerationType::Arena(arena)),
     }
 }
 
-fn generate_html5(arena: &Arena) -> String {
+fn generate_html5(generation_type: GenerationType) -> String {
     let mut sections = HashMap::new();
     let mut attribute_section_handler = HashMap::new();
     attribute_section_handler.insert("input".to_string(), html5_input_attributes as Handler);
@@ -33,7 +95,11 @@ fn generate_html5(arena: &Arena) -> String {
 
     sections.insert(SectionType::Attributes(), attribute_section_handler);
     sections.insert(SectionType::Closing(), closing_section_handler);
-    node_to_html(0, arena, &sections)
+
+    match generation_type {
+        GenerationType::Arena(ref arena) => node_to_html(0, arena, &sections),
+        GenerationType::Element(ref element) => element_to_html(element, &sections),
+    }
 }
 
 fn html5_input_attributes(ele: &HtmlElement) -> String {
@@ -58,7 +124,7 @@ fn html5_p_closing(ele: &HtmlElement) -> String {
 }
 
 fn html5_input_closing(_ele: &HtmlElement) -> String {
-    ">".to_string()   
+    ">".to_string()
 }
 
 fn xhtml_input_closing(_ele: &HtmlElement) -> String {
@@ -79,12 +145,14 @@ fn xhtml_input_attributes(ele: &HtmlElement) -> String {
     attribute_builder
 }
 
-
-fn generate_html4(arena: &Arena) -> String {
-    node_to_html(0, arena, &HashMap::new())
+fn generate_html4(generation_type: GenerationType) -> String {
+    match generation_type {
+        GenerationType::Arena(arena) => node_to_html(0, arena, &HashMap::new()),
+        GenerationType::Element(element) =>  element_to_html(element, &HashMap::new()),
+    }
 }
 
-fn generate_xhtml(arena: &Arena) -> String {
+fn generate_xhtml(generation_type: GenerationType) -> String {
     let mut sections = HashMap::new();
     let mut attribute_section_handler = HashMap::new();
     attribute_section_handler.insert("input".to_string(), xhtml_input_attributes as Handler);
@@ -94,7 +162,10 @@ fn generate_xhtml(arena: &Arena) -> String {
     closing_section_handler.insert("input".to_string(), xhtml_input_closing as Handler);
     sections.insert(SectionType::Closing(), closing_section_handler);
 
-    node_to_html(0, arena, &sections)
+    match generation_type {
+        GenerationType::Arena(arena) => node_to_html(0, arena, &sections),
+        GenerationType::Element(element) => element_to_html(element, &sections),
+    }
 }
 
 fn generate_attributes_html(ele: &HtmlElement) -> String {
@@ -154,25 +225,26 @@ fn node_to_html(
                     }
                 }
                 if !handled_closing {
-                if ele.body.is_empty() && common::is_void_tag(&ele.tag) {
-                    html_builder.push_str(" />");
-                } else {
-                    html_builder.push('>');
+                    if ele.children.is_empty() && common::is_void_tag(&ele.tag) {
+                        html_builder.push_str(" />");
+                    }
+                     else {
+                        html_builder.push('>');
 
-                    if !&ele.body.is_empty() {
-                        html_builder.push_str(&ele.body);
+                        if !&ele.children.is_empty() {
+                            html_builder.push_str(&ele.body);
+                        }
+                        for child_id in node.children() {
+                            html_builder.push_str(&format!(
+                                "{}",
+                                node_to_html(*child_id, arena, special_cases)
+                            ));
+                        }
+                        match common::does_tag_close(&ele.tag) {
+                            true => html_builder.push_str(&format!("</{}>", ele.tag())),
+                            false => html_builder.push('>'),
+                        }
                     }
-                    for child_id in node.children() {
-                        html_builder.push_str(&format!(
-                            "{}",
-                            node_to_html(*child_id, arena, special_cases)
-                        ));
-                    }
-                    match common::does_tag_close(&ele.tag) {
-                        true => html_builder.push_str(&format!("</{}>", ele.tag())),
-                        false => html_builder.push('>'),
-                    }
-                }
                 }
             }
         }

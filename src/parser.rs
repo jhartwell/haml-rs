@@ -88,13 +88,17 @@ impl<'a> Parser<'a> {
         let mut element_start_position: Option<u32> = None;
         loop {
             match self.tokens.next() {
-                Some(tok) => {
-                    println!("{:?}", tok);
-                    match &tok.value {
+                Some(tok) => match &tok.value {
                     Tok::PercentSign() => {
-                        element = Some(Html::Element(self.next_text()));
-                        just_added_element = true;
-                        element_start_position = Some(self.current_position);
+                        if just_added_element {
+                            if let Some(Html::Element(ref mut ele)) = element {
+                                ele.add_child(Html::Element(self.next_text()));
+                            }
+                        } else {
+                            element = Some(Html::Element(self.next_text()));
+                            just_added_element = true;
+                            element_start_position = Some(self.current_position);
+                        }
                     }
                     Tok::Period() => {
                         element_start_position = Some(self.current_position);
@@ -111,7 +115,7 @@ impl<'a> Parser<'a> {
                             None => continue,
                         }
                         if let Some(Html::Element(ref mut el)) = element {
-                            el.add_attribute(key, format!("{}",class));
+                            el.add_attribute(key, format!("{}", class));
                         } else {
                             let mut el = HtmlElement::new("div".to_string());
                             el.add_attribute(key, class);
@@ -168,7 +172,7 @@ impl<'a> Parser<'a> {
                         Some(Html::Element(ref mut el)) => {
                             if requires_newline(&el.tag()) {
                                 el.body.push('\n');
-                            } 
+                            }
                         }
                         _ => (),
                     },
@@ -263,7 +267,7 @@ impl<'a> Parser<'a> {
                         }
                     }
                     t => panic!(format!("Unsupported feature: {:?}", t)),
-                }},
+                },
                 None => break,
             }
         }

@@ -56,6 +56,7 @@ pub enum Html {
     SilentComment(String),
     Css(CssElement),
 }
+
 impl ToAst for Html {
     fn to_ast(&self) -> String {
         format!("{:?}", self)
@@ -77,6 +78,7 @@ impl CssElement {
 pub struct HtmlElement {
     pub tag: String,
     pub attributes: Attributes,
+    pub children: Vec<Html>,
     pub body: String,
 }
 
@@ -86,6 +88,7 @@ impl HtmlElement {
             tag,
             attributes: Attributes::new(),
             body: String::new(),
+            children: vec![],
         }
     }
 
@@ -100,6 +103,10 @@ impl HtmlElement {
     pub fn add_attribute(&mut self, key: String, value: String) {
         let clean_value = value.replace("'", " ").trim().to_string();
         self.attributes.add(key, clean_value);
+    }
+
+    pub fn add_child(&mut self, child: Html) {
+        self.children.push(child);
     }
 }
 
