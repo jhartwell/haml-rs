@@ -1,3 +1,7 @@
+# Update
+
+I have had some personal issues come up and I have ignored this project for a few months because of it. After getting back into it I realized how badly it was written. I am working on rewriting the codebase so that it is clearer and easier to work with. While doing that I will be using the tests from the Ruby implementation to ensure that nothing is broken and work on achieving greater compatibility.
+
 # Haml-rs
 
 [![](https://img.shields.io/crates/v/hamlrs.svg?maxAge=25920)](https://crates.io/crates/hamlrs) ![Travis CI Build Status](https://travis-ci.org/Haml-rs/haml-rs.svg?branch=master)

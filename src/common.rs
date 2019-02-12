@@ -1,15 +1,15 @@
-/// Maintain a mapping of tags that do
-/// not require a closing tag
-pub fn does_tag_close(tag: &str) -> bool {
-    match tag {
-        "link" => false,
-        _ => true,
-    }
-}
+// /// Maintain a mapping of tags that do
+// /// not require a closing tag
+// pub fn does_tag_close(tag: &str) -> bool {
+//     match tag {
+//         "link" => false,
+//         _ => true,
+//     }
+// }
 
-pub fn is_void_tag(tag: &str) -> bool {
-    match tag {
-        "meta" => true,
-        _ => false,
-    }
-}
+// pub fn is_void_tag(tag: &str) -> bool {
+//     match tag {
+//         "meta" => true,
+//         _ => false,
+//     }
+// }

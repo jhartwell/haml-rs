@@ -1,100 +1,100 @@
-extern crate haml;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_json;
+// extern crate haml;
+// #[macro_use]
+// extern crate serde_derive;
+// extern crate serde;
+// extern crate serde_json;
 
-use serde_json::Error;
+// use serde_json::Error;
 
-mod common;
-use common::{TestCollection, Tests};
+// mod common;
+// use common::{TestCollection, Tests};
 
-fn load_json() -> Result<Tests, Error> {
-    let json = include_str!("tests.json");
-    let tests: Tests = serde_json::from_str(&json)?;
-    Ok(tests)
-}
+// fn load_json() -> Result<Tests, Error> {
+//     let json = include_str!("tests.json");
+//     let tests: Tests = serde_json::from_str(&json)?;
+//     Ok(tests)
+// }
 
-/*
- * Run all non-optional tests in the json file
- */
-#[test]
-fn all() -> Result<(), Error> {
-    let tests = load_json()?;
-    tests.run();
-    Ok(())
-}
+// /*
+//  * Run all non-optional tests in the json file
+//  */
+// #[test]
+// fn all() -> Result<(), Error> {
+//     let tests = load_json()?;
+//     tests.run();
+//     Ok(())
+// }
 
-/*
- * This is used for testing one specific test from the JSON file at a time.
- * Pass in the key for the test data to run_test_by_name and it will execute
- * that given test
- */
-#[test]
-fn single() -> Result<(), Error> {
-    let tests = load_json()?;
-    tests.run_test_by_name("Nested content multiple simple tags");
-    Ok(())
-}
+// /*
+//  * This is used for testing one specific test from the JSON file at a time.
+//  * Pass in the key for the test data to run_test_by_name and it will execute
+//  * that given test
+//  */
+// #[test]
+// fn single() -> Result<(), Error> {
+//     let tests = load_json()?;
+//     tests.run_test_by_name("Nested content multiple simple tags");
+//     Ok(())
+// }
 
-#[test]
-fn completed_nested_content() -> Result<(), Error> {
-    let tests = load_json()?;
-    tests.run_test_by_name("Nested content tag with CSS");
-    Ok(())
-}
-#[test]
-fn completed_comments() -> Result<(), Error> {
-    let tests = load_json()?;
+// #[test]
+// fn completed_nested_content() -> Result<(), Error> {
+//     let tests = load_json()?;
+//     tests.run_test_by_name("Nested content tag with CSS");
+//     Ok(())
+// }
+// #[test]
+// fn completed_comments() -> Result<(), Error> {
+//     let tests = load_json()?;
 
-    tests.run_test_by_name("a nested markup comment nested markup comment");
-    tests.run_test_by_name("an inline markup comment");
-    tests.run_test_by_name("a multiply nested silent comment with inconsistent indents");
+//     tests.run_test_by_name("a nested markup comment nested markup comment");
+//     tests.run_test_by_name("an inline markup comment");
+//     tests.run_test_by_name("a multiply nested silent comment with inconsistent indents");
 
-    Ok(())
-}
+//     Ok(())
+// }
 
-#[test]
-fn completed_text() -> Result<(), Error> {
-    let tests = load_json()?;
+// #[test]
+// fn completed_text() -> Result<(), Error> {
+//     let tests = load_json()?;
 
-    tests.run_test_by_name("inside a textarea tag");
+//     tests.run_test_by_name("inside a textarea tag");
 
-    Ok(())
-}
+//     Ok(())
+// }
 
-#[test]
-fn completed_tags() -> Result<(), Error> {
-    let tests = load_json()?;
+// #[test]
+// fn completed_tags() -> Result<(), Error> {
+//     let tests = load_json()?;
 
-    tests.run_test_by_name("a self-closing tag (XHTML)");
-    tests.run_test_by_name("a tag with multiple CSS classes");
+//     tests.run_test_by_name("a self-closing tag (XHTML)");
+//     tests.run_test_by_name("a tag with multiple CSS classes");
 
-    Ok(())
-}
+//     Ok(())
+// }
 
-#[test]
-fn completed_boolean_attributes() -> Result<(), Error> {
-    let tests = load_json()?;
+// #[test]
+// fn completed_boolean_attributes() -> Result<(), Error> {
+//     let tests = load_json()?;
 
-    tests.run_test_by_name("boolean attribute with HTML");
-    tests.run_test_by_name("boolean attribute with XHTML");
-    Ok(())
-}
+//     tests.run_test_by_name("boolean attribute with HTML");
+//     tests.run_test_by_name("boolean attribute with XHTML");
+//     Ok(())
+// }
 
-#[test]
-fn completed_html_style_attributes() -> Result<(), Error> {
-    let tests = load_json()?;
+// #[test]
+// fn completed_html_style_attributes() -> Result<(), Error> {
+//     let tests = load_json()?;
 
-    tests.run_test_by_name("HTML-style multiple attributes");
-    Ok(())
-}
+//     tests.run_test_by_name("HTML-style multiple attributes");
+//     Ok(())
+// }
 
-#[test]
-fn completed_filters() -> Result<(), Error> {
-    let tests = load_json()?;
+// #[test]
+// fn completed_filters() -> Result<(), Error> {
+//     let tests = load_json()?;
 
-    tests.run_test_by_name("content in a 'css' filter (HTML)");
+//     tests.run_test_by_name("content in a 'css' filter (HTML)");
 
-    Ok(())
-}
+//     Ok(())
+// }

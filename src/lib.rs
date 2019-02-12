@@ -1,4 +1,4 @@
-mod ast;
+/* mod ast;
 mod common;
 mod generator;
 mod parser;
@@ -55,6 +55,10 @@ pub fn to_html(haml: &str, format: HtmlFormat) -> String {
     generator::to_html(&parsed_values, format)
 }
 
+pub fn parse(haml: &str, format: HtmlFormat) -> String {
+    "".to_string()
+}
+
 /// Converts the Haml into an abstract syntax tree
 ///
 /// # Arguments
@@ -73,3 +77,5 @@ pub fn to_ast(haml: &str) -> String {
     let mut parser = Parser::new(tokens);
     parser.parse().to_ast()
 }
+*/
+mod pipeline;
