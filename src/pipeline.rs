@@ -100,6 +100,47 @@ impl ToHtml for Text {
     }
 }
 
+#[derive(Debug)]
+pub struct Item {
+    pub name: String,
+    pub value: String,
+}
+
+#[derive(Debug)]
+pub struct Attributes {
+    pub values: Vec<Item>,
+}
+
+
+impl Attributes {
+    pub fn new() -> Attributes {
+        Attributes {
+            values: vec![]
+        }
+    }
+
+    pub fn add(&mut self, name: String, value: String) {
+        let mut existing_item = &self.values.into_iter().filter(|x| x.name == name);
+        if let Some(ref mut item) = existing_item.next() {
+            item.value.push_str(&format!(" {}", value));
+            return;
+        } else {
+            self.values.push(Item { name: name.to_string(),  value: value.to_string()});
+        }
+    }
+}
+
+
+impl ToHtml for Attributes {
+    fn html(&self) -> String {
+        let mut buffer = String::new();
+        for ref val in &self.values {
+            buffer.push_str(&format!(" {}='{}'", val.name, val.value));
+        }
+        buffer
+    }
+}
+
 impl<'a> ToHtml for Element<'a> {
     fn html(&self) -> String {
         let mut html = String::new();
@@ -395,5 +436,62 @@ mod test {
         let mut parser = Parser::new(&tokens);
         parser.parse();
         assert_eq!(true, false);
+    }
+
+
+    mod attributes {
+        use super::*;
+    #[test]
+    fn attributes_add() {
+        let mut attr = Attributes::new();
+        attr.add("test".to_string(), "value".to_string());
+        assert_eq!(attr.values.len(), 1);
+    }
+
+    #[test]
+    fn attributes_add_same() {
+        let mut attr = Attributes::new();
+        attr.add("test".to_string(), "value".to_string());
+        attr.add("test".to_string(), "it".to_string());
+        assert_eq!(attr.values.len(), 1);
+    }
+
+    #[test]
+    fn single_attribute_single_value_to_html() {
+        let mut attr = Attributes::new();
+        let key = "test".to_string();
+        let value = "value".to_string();
+        let format = format!(" {}='{}'", key, value);
+        attr.add(key.to_string(), value.to_string());
+        assert_eq!(format, attr.html());
+    }
+
+    #[test]
+    fn single_attribute_multiple_values_to_html() {
+        let mut attr = Attributes::new();
+        let key = "test".to_string();
+        let value = "value".to_string();
+        let value2 = "it".to_string();
+
+        let format = format!(" {}='{} {}'", key, value, value2);
+        attr.add(key.to_string(), value.to_string());
+        attr.add(key.to_string(), value2.to_string());
+        assert_eq!(format, attr.html());
+    }
+
+    #[test]
+    fn multiple_attributes_to_html() {
+        let mut attr = Attributes::new();
+        let key = "test".to_string();
+        let key2 = "prod".to_string();
+        let value = "value".to_string();
+        let value2 = "it".to_string();
+
+        let format = format!(" {}='{}' {}='{}'", key, value, key2, value2);
+        attr.add(key.to_string(), value.to_string());
+        attr.add(key2.to_string(), value2.to_string());
+        assert_eq!(format, attr.html());
+
+    }
     }
 }

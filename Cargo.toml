@@ -17,6 +17,9 @@ test = true
 doctest = true
 doc = true
 
+[dependencies]
+regex = "1"
+
 [dev-dependencies]
 criterion = "0.2.5"
 serde = "*"
