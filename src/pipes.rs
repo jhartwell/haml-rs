@@ -125,7 +125,7 @@ impl<'a> Handler<'a> {
     }
 
     pub fn parse(&mut self) -> String {
-        let mut lines = self.haml.lines();
+        let lines = self.haml.lines();
         let mut items: Vec<Element> = vec![];
         for line in lines {
             items.push(self.parse_line(line));
@@ -140,13 +140,13 @@ impl<'a> Handler<'a> {
     }
 
     fn parse_line(&self, line: &str) -> Element {
-        let mut index = 0;
+        let _index = 0;
         let mut whitespace_count = 0;
         let mut el: Element = Element::empty();
         for (idx, c) in line.char_indices() {
             match c {
                 ' ' => whitespace_count = idx,
-                c => {
+                _c => {
                     el = self.parse_element(&line[idx..]);
                     break;
                 }
@@ -161,7 +161,7 @@ impl<'a> Handler<'a> {
         let el = match first {
             "%" => {
                 let mut el = String::new();
-                let mut other = String::new();
+                let mut _other = String::new();
                 let mut current_index = 0;
                 let mut state = State::Element();
                 for (idx, c) in rest.char_indices() {
@@ -447,7 +447,7 @@ mod test {
         fn test() {
             let haml = "%test";
             let mut handler = Handler::new(haml);
-            let html = handler.parse();
+            let _html = handler.parse();
             assert!(false);
         }
     }
