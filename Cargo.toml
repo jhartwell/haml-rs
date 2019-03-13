@@ -9,6 +9,7 @@ keywords = ["haml", "templating", "template"]
 categories = ["development-tools", "parser-implementations", "template-engine"]
 readme = "README.md"
 maintenance = { status = "actively-developed" }
+edition = "2018"
 
 [lib]
 name = "haml"
@@ -16,11 +17,3 @@ path = "src/lib.rs"
 test = true
 doctest = true
 doc = true
-
-[dependencies]
-regex = "1"
-
-[dev-dependencies]
-serde = "*"
-serde_derive = "*"
-serde_json = "*"

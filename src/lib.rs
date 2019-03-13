@@ -78,5 +78,6 @@ pub fn to_ast(haml: &str) -> String {
     parser.parse().to_ast()
 }
 */
-extern crate regex;
-mod pipes;
+// extern crate regex;
+// mod pipes;
+mod lex;
