@@ -9,6 +9,7 @@ pub enum Token {
     Id(String),
     Whitespace(u32),
     Text(String),
+    Newline(),
 }
 
 impl Token {
@@ -47,6 +48,7 @@ impl<'a> Lexer<'a> {
 
         match current_state {
             Some(Token::Whitespace(idx)) => self.current_state = Some(Token::Whitespace(idx + 1)),
+            Some(Token::Newline()) => self.push_state(Token::Whitespace(1)),
             None => self.current_state = Some(Token::Whitespace(1)),
             _ => {
                 if let Some(token) = &self.previous_state {
@@ -83,6 +85,10 @@ impl<'a> Lexer<'a> {
             Some(Token::Element(_)) => self.push_state(Token::Class(String::new())),
             Some(Token::Text(_)) => self.buffer.push('.'),
             Some(Token::Id(_)) => self.push_state(Token::Class(String::new())),
+            Some(Token::Whitespace(_)) => {
+                self.current_state = Some(Token::ImpliedDiv());
+                self.push_state(Token::Class(String::new()));
+            }
             None => {
                 self.current_state = Some(Token::ImpliedDiv());
                 self.push_state(Token::Class(String::new()));
@@ -141,6 +147,10 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn handle_newline(&mut self) {
+        self.push_state(Token::Newline());
+    }
+
     pub fn generate(&mut self) -> &Vec<Token> {
         for ch in self.haml.chars() {
             match ch {
@@ -152,6 +162,7 @@ impl<'a> Lexer<'a> {
                 '(' => self.handle_open('('),
                 ')' => self.handle_close(')'),
                 '}' => self.handle_close('}'),
+                '\n' => self.handle_newline(),
                 c => self.handle_char(c),
             }
         }
@@ -295,5 +306,28 @@ mod test {
         let tokens = lex.generate();
         assert_eq!(1, tokens.len());
         assert_eq!(Token::Text("test".to_string()), tokens[0]);
+    }
+
+    #[test]
+    fn newline() {
+        let haml = "\n";
+        let mut lex = Lexer::new(haml);
+        let tokens = lex.generate();
+        assert_eq!(1, tokens.len());
+        assert_eq!(Token::Newline(), tokens[0]);
+    }
+
+    #[test]
+    fn nested() {
+        let haml = "%test\n  .box";
+        let mut lex = Lexer::new(haml);
+        let tokens = lex.generate();
+        dbg!(tokens);
+        assert_eq!(5, tokens.len());
+        assert_eq!(Token::Element("test".to_string()), tokens[0]);
+        assert_eq!(Token::Newline(), tokens[1]);
+        assert_eq!(Token::Whitespace(2), tokens[2]);
+        assert_eq!(Token::ImpliedDiv(), tokens[3]);
+        assert_eq!(Token::Class("box".to_string()), tokens[4]);
     }
 }
