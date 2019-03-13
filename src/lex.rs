@@ -4,12 +4,15 @@ use std::collections::HashMap;
 pub enum Token {
     Element(String),
     ImpliedDiv(),
-    Attributes(HashMap<String, Vec<String>>),
+    StartAttributes(),
+    EndAttributes(),
     Class(String),
     Id(String),
     Whitespace(u32),
     Text(String),
     Newline(),
+    Equal(),
+    Quoted(),
 }
 
 impl Token {
@@ -114,18 +117,14 @@ impl<'a> Lexer<'a> {
     fn handle_open(&mut self, open_type: char) {
         let current_state = &self.current_state;
         match current_state {
-            Some(Token::Element(_)) => self.push_state(Token::Attributes(HashMap::new())),
+            Some(Token::Element(_)) => self.push_state(Token::StartAttributes()),
             Some(Token::Text(txt)) => self.buffer.push(open_type),
             _ => (),
         }
     }
 
     fn handle_close(&mut self, close_type: char) {
-        let current_state = &self.current_state;
-        match current_state {
-            Some(Token::Whitespace(_)) => (),
-            _ => (),
-        }
+        self.push_state(Token::EndAttributes());
     }
 
     fn handle_char(&mut self, ch: char) {
@@ -151,6 +150,10 @@ impl<'a> Lexer<'a> {
         self.push_state(Token::Newline());
     }
 
+    fn handle_equal(&mut self) {
+        self.push_state(Token::Equal());
+    }
+
     pub fn generate(&mut self) -> &Vec<Token> {
         for ch in self.haml.chars() {
             match ch {
@@ -163,6 +166,7 @@ impl<'a> Lexer<'a> {
                 ')' => self.handle_close(')'),
                 '}' => self.handle_close('}'),
                 '\n' => self.handle_newline(),
+                '=' => self.handle_equal(),
                 c => self.handle_char(c),
             }
         }
@@ -322,12 +326,33 @@ mod test {
         let haml = "%test\n  .box";
         let mut lex = Lexer::new(haml);
         let tokens = lex.generate();
-        dbg!(tokens);
         assert_eq!(5, tokens.len());
         assert_eq!(Token::Element("test".to_string()), tokens[0]);
         assert_eq!(Token::Newline(), tokens[1]);
         assert_eq!(Token::Whitespace(2), tokens[2]);
         assert_eq!(Token::ImpliedDiv(), tokens[3]);
         assert_eq!(Token::Class("box".to_string()), tokens[4]);
+    }
+
+    #[test]
+    fn equal() {
+        let haml = "=";
+        let mut lex = Lexer::new(haml);
+        let tokens = lex.generate();
+        assert_eq!(1, tokens.len());
+        assert_eq!(Token::Equal(), tokens[0]);
+    }
+
+    #[test]
+    fn assignment() {
+        let haml = "a = b";
+        let mut lex = Lexer::new(haml);
+        let tokens = lex.generate();
+        assert_eq!(5, tokens.len());
+        assert_eq!(Token::Text("a".to_string()), tokens[0]);
+        assert_eq!(Token::Whitespace(1), tokens[1]);
+        assert_eq!(Token::Equal(), tokens[2]);
+        assert_eq!(Token::Whitespace(1), tokens[3]);
+        assert_eq!(Token::Text("b".to_string()), tokens[4]);
     }
 }
