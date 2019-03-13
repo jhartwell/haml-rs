@@ -21,11 +21,6 @@ doc = true
 regex = "1"
 
 [dev-dependencies]
-criterion = "0.2.5"
 serde = "*"
 serde_derive = "*"
 serde_json = "*"
-
-[[bench]]
-name = "bench"
-harness = false
