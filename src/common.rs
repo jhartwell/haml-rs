@@ -1,15 +1,29 @@
-// /// Maintain a mapping of tags that do
-// /// not require a closing tag
-// pub fn does_tag_close(tag: &str) -> bool {
-//     match tag {
-//         "link" => false,
-//         _ => true,
-//     }
-// }
+#[derive(Debug, Clone, PartialEq)]
+pub enum Token {
+    Element(String),
+    ImpliedDiv(),
+    StartAttributes(),
+    EndAttributes(),
+    Class(String),
+    Id(String),
+    Whitespace(u32),
+    Text(String),
+    Newline(),
+    Equal(),
+    Quoted(),
+    Arrow(),
+    Slash(),
+    Colon(),
+}
 
-// pub fn is_void_tag(tag: &str) -> bool {
-//     match tag {
-//         "meta" => true,
-//         _ => false,
-//     }
-// }
+impl Token {
+    pub fn update(token: &Token, data: &str) -> Self {
+        match token {
+            Token::Element(_) => Token::Element(data.to_string()),
+            Token::Class(_) => Token::Class(data.to_string()),
+            Token::Id(_) => Token::Id(data.to_string()),
+            Token::Text(_) => Token::Text(data.to_string()),
+            token => token.clone(),
+        }
+    }
+}

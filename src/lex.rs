@@ -1,31 +1,6 @@
+use hamlrs::common::Token;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Token {
-    Element(String),
-    ImpliedDiv(),
-    StartAttributes(),
-    EndAttributes(),
-    Class(String),
-    Id(String),
-    Whitespace(u32),
-    Text(String),
-    Newline(),
-    Equal(),
-    Quoted(),
-}
-
-impl Token {
-    pub fn update(token: &Token, data: &str) -> Self {
-        match token {
-            Token::Element(_) => Token::Element(data.to_string()),
-            Token::Class(_) => Token::Class(data.to_string()),
-            Token::Id(_) => Token::Id(data.to_string()),
-            Token::Text(_) => Token::Text(data.to_string()),
-            token => token.clone(),
-        }
-    }
-}
 
 pub struct Lexer<'a> {
     haml: &'a str,
@@ -154,6 +129,23 @@ impl<'a> Lexer<'a> {
         self.push_state(Token::Equal());
     }
 
+    fn handle_arrow(&mut self) {
+        self.push_state(Token::Arrow());
+    }
+
+    fn handle_slash(&mut self) {
+        let current_state = &self.current_state;
+        match current_state {
+            None => self.push_state(Token::Slash()),
+            Some(Token::Text(_)) => self.buffer.push('\\'),
+            _ => self.push_state(Token::Slash()),
+        }
+    }
+
+    fn handle_colon(&mut self) {
+        self.push_state(Token::Colon());
+    }
+    
     pub fn generate(&mut self) -> &Vec<Token> {
         for ch in self.haml.chars() {
             match ch {
@@ -167,6 +159,9 @@ impl<'a> Lexer<'a> {
                 '}' => self.handle_close('}'),
                 '\n' => self.handle_newline(),
                 '=' => self.handle_equal(),
+                '>' => self.handle_arrow(),
+                '\\' => self.handle_slash(),
+                ':' => self.handle_colon(),
                 c => self.handle_char(c),
             }
         }
