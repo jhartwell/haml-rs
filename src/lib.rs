@@ -80,4 +80,6 @@ pub fn to_ast(haml: &str) -> String {
 */
 // extern crate regex;
 // mod pipes;
+mod common;
 mod lex;
+mod parser;

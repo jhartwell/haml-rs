@@ -1,6 +1,5 @@
-use hamlrs::common::Token;
+use crate::common::Token;
 use std::collections::HashMap;
-
 
 pub struct Lexer<'a> {
     haml: &'a str,
@@ -145,7 +144,7 @@ impl<'a> Lexer<'a> {
     fn handle_colon(&mut self) {
         self.push_state(Token::Colon());
     }
-    
+
     pub fn generate(&mut self) -> &Vec<Token> {
         for ch in self.haml.chars() {
             match ch {

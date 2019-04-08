@@ -27,3 +27,47 @@ impl Token {
         }
     }
 }
+
+pub trait Html {
+    fn html(&self) -> String;
+}
+
+pub struct Element<'a> {
+    children: Vec<&'a Html>,
+    attributes: String,
+    tag: String,
+}
+
+impl<'a> Html for Element<'a> {
+    fn html(&self) -> String {
+        String::new()
+    }
+}
+
+pub struct Text {
+    text: String,
+}
+
+impl Html for Text {
+    fn html(&self) -> String {
+        String::new()
+    }
+}
+
+impl<'a> Element<'a> {
+    pub fn new(tag: &str) -> Element<'a> {
+        Element {
+            children: vec![],
+            attributes: String::new(),
+            tag: tag.to_string(),
+        }
+    }
+
+    pub fn add_child(&mut self, element: &'a impl Html) {
+        self.children.push(element);
+    }
+
+    pub fn add_attributes(&mut self, attr: &str) {
+        self.attributes.push_str(attr);
+    }
+}
