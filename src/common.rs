@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Element(String),
@@ -35,6 +37,7 @@ pub trait Html {
 pub struct Element<'a> {
     children: Vec<&'a Html>,
     attributes: String,
+    attr_map: HashMap<String, Vec<String>>,
     tag: String,
 }
 
@@ -60,6 +63,7 @@ impl<'a> Element<'a> {
             children: vec![],
             attributes: String::new(),
             tag: tag.to_string(),
+            attr_map: HashMap::new(),
         }
     }
 
@@ -67,7 +71,14 @@ impl<'a> Element<'a> {
         self.children.push(element);
     }
 
-    pub fn add_attributes(&mut self, attr: &str) {
-        self.attributes.push_str(attr);
+    pub fn add_attributes(&mut self, key: &str, attr: &str) {
+        match self.attr_map.get(key) {
+            Some(val) => {
+                let new_value: Vec<String> = val.as_mut_slice().collect();
+                new_value.push(attr);
+                self.attr_map.insert(key, new_value);
+            },
+            None => self.attr_map.insert(key, val),
+        }
     }
 }

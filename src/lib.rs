@@ -80,6 +80,25 @@ pub fn to_ast(haml: &str) -> String {
 */
 // extern crate regex;
 // mod pipes;
+// mod common;
+// mod lex;
+// mod parser;
+
 mod common;
 mod lex;
 mod parser;
+use parser::Parser;
+use common::Token;
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn zz() {
+        let t = vec![Token::Arrow(), Token::StartAttributes()];
+        let mut p = Parser::new(&t);
+        p.parse();
+        
+    }
+}
