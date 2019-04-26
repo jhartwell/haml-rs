@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 use std::collections::HashMap;
+=======
+use macros;
+use std::convert::From;
+use traits;
+>>>>>>> 694d25c913ed882ba8b7c769ef9bdebed4a63ac8
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
@@ -30,10 +36,11 @@ impl Token {
     }
 }
 
-pub trait Html {
+pub trait Html: AsAny {
     fn html(&self) -> String;
 }
 
+#[derive(AsAny)]
 pub struct Element<'a> {
     children: Vec<&'a Html>,
     attributes: String,
@@ -47,8 +54,15 @@ impl<'a> Html for Element<'a> {
     }
 }
 
+#[derive(AsAny)]
 pub struct Text {
     text: String,
+}
+
+impl Text {
+    pub fn boxed(text: String) -> Box<Text> {
+        Box::new(Text { text })
+    }
 }
 
 impl Html for Text {
@@ -67,8 +81,8 @@ impl<'a> Element<'a> {
         }
     }
 
-    pub fn add_child(&mut self, element: &'a impl Html) {
-        self.children.push(element);
+    pub fn add_child(&mut self, element: Box<dyn Html>) {
+        self.children.push(&(*element));
     }
 
     pub fn add_attributes(&mut self, key: &str, attr: &str) {
@@ -80,5 +94,11 @@ impl<'a> Element<'a> {
             },
             None => self.attr_map.insert(key, val),
         }
+    }
+}
+
+impl<'a> From<Box<dyn Html>> for Element<'a> {
+    fn from(html: Box<dyn Html>) -> Self {
+        html.downcast::<Element>().unwrap()
     }
 }

@@ -1,4 +1,8 @@
 /target
+/src/macros/target
+/src/macros/*.rs.bk
+/src/traits/target
+/src/traits/*.rs.bk
 **/*.rs.bk
 Cargo.lock
 .vscode

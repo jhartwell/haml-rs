@@ -19,4 +19,9 @@ doctest = true
 doc = true
 
 [dependencies]
+<<<<<<< HEAD
 haml_derive = {path = "haml_derive"}
+=======
+macros = {path = "src/macros"}
+traits = {path ="src/traits"}
+>>>>>>> 694d25c913ed882ba8b7c769ef9bdebed4a63ac8
