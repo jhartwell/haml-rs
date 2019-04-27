@@ -1,7 +1,0 @@
-[package]
-name = "traits"
-version = "0.1.0"
-authors = ["Jon Hartwell <jon@dontbreakthebuild.com>"]
-edition = "2018"
-
-[dependencies]

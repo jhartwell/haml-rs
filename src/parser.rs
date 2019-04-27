@@ -127,8 +127,6 @@ pub struct Parser<'a> {
     state: State<'a>,
 }
 
-<<<<<<< HEAD
-=======
 type StringReturn<'a> = (&'a Token, String);
 type HtmlReturn<'a> = (&'a Token, Box<dyn Html>);
 
@@ -146,7 +144,6 @@ type HtmlReturn<'a> = (&'a Token, Box<dyn Html>);
 // Arrow(),
 // Slash(),
 // Colon(),
->>>>>>> 694d25c913ed882ba8b7c769ef9bdebed4a63ac8
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
@@ -227,25 +224,6 @@ impl<'a> Parser<'a> {
         let mut current_spaces = index;
         loop {
             match current {
-<<<<<<< HEAD
-                Some(Token::Class(class)) => while let Some(t) = self.tokens.next() {},
-                Some(Token::Id(id)) => attr.push_str(&id),
-                Some(Token::EndAttributes()) => break,
-                _ => break,
-            }
-        }
-        attr
-    }
-
-    fn parse_attribute_value(&mut self, value: &str) -> String {
-        let mut attr = String::new();
-        let mut current = self.tokens.next();
-        loop {
-            match current {
-                Some(Token::Equal()) => {
-                    while let Some(t) = self.tokens.next() {}
-                    break;
-=======
                 Some(Token::StartAttributes()) => loop {
                     let (cur, attr) = self.parse_assign();
                     t.add_attributes(&attr);
@@ -266,7 +244,6 @@ impl<'a> Parser<'a> {
                             }
                         }
                     }
->>>>>>> 694d25c913ed882ba8b7c769ef9bdebed4a63ac8
                 }
                 Some(Token::Text(ref text)) => t.add_child(Text::boxed(text.to_string())),
                 Some(Token::Element(ref el)) => {
@@ -288,55 +265,6 @@ impl<'a> Parser<'a> {
                 _ => break,
             }
         }
-<<<<<<< HEAD
-        attr
-    }
-
-    fn check(&self, token: &Token) {
-        if !self.state.can_transition(token) {
-            panic!("FAAILED");
-        }
-    }
-
-    fn parse_implied_div(&mut self, val: &str, attr_type: ImpliedDivType) ->  impl Html {
-        let mut t = Element::new("div");
-        match attr_type {
-            ImpliedDivType::Class() => t.add_attributes(&format!("class='{}'", val)),
-            ImpliedDivType::Id() => t.add_attributes(&format!("id='{}'", val)),
-        }
-        t
-    }
-    fn parse_element(&mut self, tag: &str) -> impl Html {
-        let mut t = Element::new(tag);
-        let mut indent = 0;
-        if let Some(&&Token::Whitespace(i)) = self.state.last_state() {
-            indent = i;
-        }
-        while let Some(current) = self.tokens.next() {
-            self.state.update_state(&current);
-            match current {
-                Token::Whitespace(i) => {
-                    if *i <= indent {
-                        break;
-                    }else {
-                        continue;
-                    }
-                },
-                Token::Element(ref e) => {
-                    t.add_child(&self.parse_element(e));
-                },
-                Token::ImpliedDiv() => {
-                    if let Some(next) = self.tokens.next() {
-                        self.check(next);
-                        self.parse_implied_div()
-                    }
-                }
-                _ => (),
-            }
-        }
-        t
-=======
         Box::new(t)
->>>>>>> 694d25c913ed882ba8b7c769ef9bdebed4a63ac8
     }
 }

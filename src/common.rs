@@ -1,10 +1,4 @@
-<<<<<<< HEAD
-use std::collections::HashMap;
-=======
-use macros;
 use std::convert::From;
-use traits;
->>>>>>> 694d25c913ed882ba8b7c769ef9bdebed4a63ac8
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
