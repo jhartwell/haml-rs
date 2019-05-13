@@ -1,67 +1,105 @@
 // use https://regexr.com/ to test regex
 use super::{STRING, WHITESPACE};
-use regex::Regex;
+use regex::{Captures, Regex};
+
+#[derive(Debug, PartialEq)]
+pub enum ElementType {
+    Div(),
+    Other(),
+}
 
 pub struct Element {
     pub whitespace: usize,
     pub name: Option<String>,
+    pub element_type: ElementType,
     pub class_and_ids: Option<String>,
     pub inline_text: Option<String>,
-
+    pub attributes: Option<String>,
 }
 
 impl Element {
-    pub fn from_string(t: &str) -> Element {
-        let r = Regex::new(&Element::element()).unwrap();
-        let captures = r.captures(t).unwrap();
-        let mut whitespace = 0;
-        let mut name: Option<String> = None;
-        let mut class_and_ids: Option<String> = None;
-        let mut inline_text: Option<String> = None;
-        if let Some(ws) = captures.get(1) {
-            whitespace = ws.as_str().len();
-        }
-
-        if let Some(element_name) = captures.get(2) {
-            name = Some(element_name.as_str().to_owned());
-        }
-
-        if let Some(class_ids) = captures.get(3) {
-            class_and_ids = Some(class_ids.as_str().to_owned());
-        }
-
-        if let Some(text) = captures.get(4) {
-            inline_text = Some(text.as_str().to_owned());
-        }
-
-
+    fn create_div<'a>(caps: &'a Captures) -> Element {
         Element {
-         whitespace,
-         name,
-         class_and_ids,
-         inline_text,
-
+            whitespace: Element::handle_whitespace(caps),
+            name: Element::handle_name(caps),
+            element_type: ElementType::Div(),
+            class_and_ids: Element::handle_class_and_ids(caps),
+            inline_text: Element::handle_inline_text(caps),
+            attributes: Element::handle_attributes(caps),
         }
     }
 
- fn attribute_key() -> String {
-    format!("[:]{{1}}{}", STRING)
-}
+    fn handle_whitespace(caps: &Captures) -> usize {
+        match caps.name("ws") {
+            Some(ws) => ws.as_str().len(),
+            None => 0,
+        }
+    }
 
- fn attribute_value() -> String {
-    STRING.to_string()
-}
+    fn handle_name(caps: &Captures) -> Option<String> {
+        match caps.name("name") {
+            Some(name) => Some(name.as_str().to_owned()),
+            None => None,
+        }
+    }
 
- fn attribute() -> String {
-    format!(
-        "\\w*({})\\w*[=]\\w*({})",
-        Element::attribute_key(),
-        Element::attribute_value()
-    )
-}
+    fn handle_class_and_ids(caps: &Captures) -> Option<String> {
+        match caps.name("classid") {
+            Some(class_id) => {
+                match class_id.as_str() {
+                    "" => None,
+                    s => Some(s.to_owned()),
+                }
+            }
+            None => None,
+        }
+    }
 
-fn attributes() -> String {
-    format!("[{{]({})+[}}]", Element::attribute())
+    fn handle_attributes(caps: &Captures) -> Option<String> {
+        match caps.name("attributes") {
+            Some(attributes) => {
+                match attributes.as_str() {
+                    "" => None,
+                    s => Some(s.to_owned())
+                }
+            }
+            None => None,
+        }
+    }
+
+    fn handle_inline_text(caps: &Captures) -> Option<String> {
+        match caps.name("text") {
+            Some(text) => Some(text.as_str().trim().to_owned()),
+            None => None,
+        }
+    }
+
+    fn create_element<'a>(caps: &'a Captures) -> Element {
+        Element {
+            whitespace: Element::handle_whitespace(caps),
+            name: Element::handle_name(caps),
+            element_type: ElementType::Other(),
+            class_and_ids: Element::handle_class_and_ids(caps),
+            inline_text: Element::handle_inline_text(caps),
+            attributes: Element::handle_attributes(caps),
+        }
+    }
+
+    pub fn from_string(haml: &str) -> Element {
+        let element_regex = Regex::new(&element()).unwrap();
+        let div_regex = Regex::new(&div()).unwrap();
+
+        match element_regex.is_match(haml) {
+            true => {
+                let caps = element_regex.captures(haml).unwrap();
+                Element::create_element(&caps)
+            }
+            false => {
+                let caps = div_regex.captures(haml).unwrap();
+                Element::create_div(&caps)
+            }
+        }
+    }
 }
 
 fn element_name() -> String {
@@ -76,12 +114,30 @@ fn element_text() -> String {
     r"\s+.+".to_owned()
 }
 fn element() -> String {
-    format!("({})*({}){{1}}(({})*)({})*", WHITESPACE, Element::element_name(),
-     Element::element_class_id(), 
-     Element::element_text() )
-}
+    format!(
+        "(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<attributes>({}){{0,1}})(?P<text>{})*",
+        WHITESPACE,
+        element_name(),
+        element_class_id(),
+        attributes(),
+        element_text()
+    )
 }
 
+fn div() -> String {
+    format!(
+        "(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<attributes>({}){{0,1}})(?P<text>{})*",
+        WHITESPACE,
+        element_class_id(),
+        element_class_id(),
+        attributes(),
+        element_text()
+    )
+}
+
+fn attributes() -> String {
+    "[{{]((\\s*[:]\\w+){1}\\s*[=]\\s*[']\\w*[']\\s*)+[}}]".to_owned()
+}
 
 #[cfg(test)]
 mod test {
@@ -91,16 +147,16 @@ mod test {
     fn basic_element() {
         let t = "%hi";
         let el = Element::from_string(t);
+        println!("basic_element");
         assert_eq!(0, el.whitespace);
         assert_eq!(Some("%hi".to_owned()), el.name);
     }
-
 
     #[test]
     fn element_with_single_class() {
         let t = "%hi.box";
         let el = Element::from_string(t);
-
+        println!("element_with_single_class");
         assert_eq!(0, el.whitespace);
         assert_eq!(Some("%hi".to_owned()), el.name);
         assert_eq!(Some(".box".to_owned()), el.class_and_ids);
@@ -110,6 +166,7 @@ mod test {
     fn element_with_two_classes() {
         let t = "%hi.box.top";
         let el = Element::from_string(t);
+        println!("element_with_two_classes");
         assert_eq!(Some("%hi".to_owned()), el.name);
         assert_eq!(Some(".box.top".to_owned()), el.class_and_ids);
     }
@@ -118,45 +175,107 @@ mod test {
     fn element_with_id() {
         let t = "%hi#there";
         let el = Element::from_string(t);
+        println!("element_with_id");
         assert_eq!(Some("%hi".to_owned()), el.name);
         assert_eq!(Some("#there".to_owned()), el.class_and_ids);
     }
-    
+
     #[test]
     fn element_with_id_and_class() {
         let id_then_class = "%hi#there.box";
         let id_then_class_el = Element::from_string(id_then_class);
         assert_eq!(0, id_then_class_el.whitespace);
         assert_eq!(Some("%hi".to_owned()), id_then_class_el.name);
-        assert_eq!(Some("#there.box".to_owned()), id_then_class_el.class_and_ids);
+        assert_eq!(
+            Some("#there.box".to_owned()),
+            id_then_class_el.class_and_ids
+        );
 
         let class_then_id = "%hi.box#there";
         let class_then_id_element = Element::from_string(class_then_id);
         assert_eq!(0, class_then_id_element.whitespace);
         assert_eq!(Some("%hi".to_owned()), class_then_id_element.name);
-        assert_eq!(Some(".box#there".to_owned()), class_then_id_element.class_and_ids);
+        assert_eq!(ElementType::Other(), class_then_id_element.element_type);
+        assert_eq!(
+            Some(".box#there".to_owned()),
+            class_then_id_element.class_and_ids
+        );
 
         let class_then_id_then_class = "%hi.box#there.modal";
         let class_then_id_then_class_element = Element::from_string(class_then_id_then_class);
         assert_eq!(0, class_then_id_then_class_element.whitespace);
-        assert_eq!(Some("%hi".to_owned()), class_then_id_then_class_element.name);
-        assert_eq!(Some(".box#there.modal".to_owned()), class_then_id_then_class_element.class_and_ids);
+        assert_eq!(
+            Some("%hi".to_owned()),
+            class_then_id_then_class_element.name
+        );
+        assert_eq!(ElementType::Other(), class_then_id_then_class_element.element_type);
+        assert_eq!(
+            Some(".box#there.modal".to_owned()),
+            class_then_id_then_class_element.class_and_ids
+        );
 
         let id_then_class_class = "%hi#there.box.modal";
         let id_then_class_class_element = Element::from_string(id_then_class_class);
-        assert_eq!(0,id_then_class_class_element.whitespace);
+        assert_eq!(0, id_then_class_class_element.whitespace);
         assert_eq!(Some("%hi".to_owned()), id_then_class_class_element.name);
-        assert_eq!(Some("#there.box.modal".to_owned()), id_then_class_class_element.class_and_ids);
+        assert_eq!(ElementType::Other(), id_then_class_class_element.element_type);
+        assert_eq!(
+            Some("#there.box.modal".to_owned()),
+            id_then_class_class_element.class_and_ids
+        );
     }
 
     #[test]
     fn element_with_text_after() {
         let basic_element = "%hi value";
         let element = Element::from_string(basic_element);
-
+        println!("element_with_text_after");
         assert_eq!(0, element.whitespace);
         assert_eq!(Some("%hi".to_owned()), element.name);
+        assert_eq!(ElementType::Other(), element.element_type);
         assert_eq!(None, element.class_and_ids);
         assert_eq!(Some("value".to_owned()), element.inline_text);
+    }
+
+    #[test]
+    fn element_with_single_attribute() {
+        let haml = "%hi{:id = 'me'}";
+        let element = Element::from_string(haml);
+        println!("element_with_single_attribute");
+        assert_eq!(0, element.whitespace);
+        assert_eq!(Some("%hi".to_owned()), element.name);
+        assert_eq!(ElementType::Other(), element.element_type);
+        assert_eq!(None, element.class_and_ids);
+        assert_eq!(Some("{:id = 'me'}".to_owned()), element.attributes);
+        assert_eq!(None, element.inline_text);
+    }
+
+    #[test]
+    fn element_with_multiple_attributes() {
+        let haml = "%hi{:id = 'no' :class = 'box'}";
+        let element = Element::from_string(haml);
+        println!("element_with_multiple_attributes");
+        assert_eq!(0, element.whitespace);
+        assert_eq!(Some("%hi".to_owned()), element.name);
+        assert_eq!(ElementType::Other(), element.element_type);
+        assert_eq!(None, element.class_and_ids);
+        assert_eq!(
+            Some("{:id = 'no' :class = 'box'}".to_owned()),
+            element.attributes
+        );
+        assert_eq!(None, element.inline_text);
+    }
+
+    #[test]
+    fn test_basic_id_div() {
+        let haml = "#hi";
+        let element = Element::from_string(haml);
+        println!("test_basic_id_div");
+        assert_eq!(0, element.whitespace);
+        assert_eq!(Some("#hi".to_owned()), element.name);
+        assert_eq!(ElementType::Div(), element.element_type);
+        assert_eq!(None, element.class_and_ids);
+        assert_eq!(None, element.attributes);
+        assert_eq!(None, element.inline_text);
     }
 }
