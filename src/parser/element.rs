@@ -8,7 +8,7 @@ pub enum ElementType {
     Other(),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Element {
     pub whitespace: usize,
     pub name: Option<String>,
@@ -84,16 +84,36 @@ impl Element {
 
     pub fn from_string(haml: &str) -> Option<Element> {
         let element_regex = Regex::new(&element()).unwrap();
-        let div_regex = Regex::new(&div()).unwrap();
+        let div_regex = Regex::new(&div());
+    
+        let element: Option<Element> = match Regex::new(&element()) {
+            Ok(el) => {
+                match el.is_match(haml) {
+                    true => {
+                        let caps = el.captures(haml).unwrap();
+                        Some(Element::create_element(&caps))
+                    },
+                    false => None
+                }
+            },
+            _ => None
+        };
 
-        match element_regex.is_match(haml) {
-            true => {
-                let caps = element_regex.captures(haml).unwrap();
-                Some(Element::create_element(&caps))
-            }
-            false => {
-                let caps = div_regex.captures(haml).unwrap();
-                Some(Element::create_div(&caps))
+        match element {
+            Some(el) => Some(el),
+            None => {
+                match div_regex {
+                    Ok(el) => {
+                        match el.is_match(haml) {
+                            true => {
+                                let caps = el.captures(haml).unwrap();
+                                Some(Element::create_div(&caps))
+                            },
+                            false => None
+                        }
+                    },
+                    _ => None
+                }
             }
         }
     }
@@ -112,7 +132,7 @@ fn element_text() -> String {
 }
 fn element() -> String {
     format!(
-        "(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<attributes>({}){{0,1}})(?P<text>{})*",
+        "^(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<attributes>({}){{0,1}})(?P<text>{})*",
         WHITESPACE,
         element_name(),
         element_class_id(),
@@ -287,5 +307,12 @@ mod test {
         assert_eq!(None, element.class_and_ids);
         assert_eq!(None, element.attributes);
         assert_eq!(None, element.inline_text);
+    }
+
+    #[test]
+    fn test_not_beginning_of_line() {
+        let haml = "ab   %hi";
+        let element = Element::from_string(haml);
+        assert_eq!(None, element);
     }
 }

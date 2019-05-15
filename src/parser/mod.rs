@@ -1,11 +1,30 @@
 mod element;
 use element::{Element, ElementType};
-
+use regex::Regex;
 use std::collections::HashMap;
-use std::ops::Index;
 
 pub const WHITESPACE: &str = r"\s*";
 pub const STRING: &str = r"\w+";
+
+pub const TEXT_REGEX: &str = r"^(\s*)[\\]";
+
+
+fn text_from_string(line: &str) -> Option<String> {
+    let r = Regex::new(TEXT_REGEX).unwrap();
+    match r.is_match(line) {
+        true => Some(line[1..].to_owned()),
+        false => None,
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Haml {
+    Root(),
+    Element(Element),
+    Text(String),
+    Temp(String, u32, u32),
+
+}
 pub struct Parser {
     arena: Arena,
 }
@@ -21,29 +40,20 @@ impl Parser {
         let mut previous_id = 0;
         let mut first_line = true;
         for line in haml.lines() {
+            println!("{:?}", text_from_string(line));
             if let Some(el) = Element::from_string(line) {
+                let ws = el.whitespace;
+                let element = Haml::Element(el);
                 if !first_line {
-                    let p_id = self.arena.from_whitespace(previous_id, el.whitespace);
-                    previous_id = self.arena.insert(el.clone(), p_id);
-                    // let parentItem = self.arena.item(parent);
-                    // if parentItem.el.whitespace < el.whitespace {
-                    //     println!("LT: {} - PWS: {} - EWS: {}", parent, parentItem.el.whitespace, el.whitespace);
-                    //     self.arena.insert(el.clone(), parent);
-                    // } else if parentItem.el.whitespace == el.whitespace {
-                    //     let p_id = self.arena.parent(parent);
-                    //     self.arena.insert(el.clone(), p_id);
-                    //     parent = p_id;
-                    //     println!("EQ: {}", parent);
-                    // } else {
-                    //     let p_id = self.arena.from_whitespace(parent, el.whitespace);
-                    //     self.arena.insert(el.clone(), p_id);
-                    //     parent = p_id;
-                    //     println!("GT: {}", parent);
-                    // }
+                    let p_id = self.arena.from_whitespace(previous_id, ws);
+                    previous_id = self.arena.insert(element, p_id);
                 } else {
-                    previous_id = self.arena.insert(el.clone(), 0);
+                    previous_id = self.arena.insert(element, 0);
                     first_line = false;
                 }
+            } else if let Some(text_line) = text_from_string(line) {
+                println!("hit");
+                self.arena.insert(Haml::Text(text_line), previous_id);
             }
         }
         &self.arena
@@ -57,15 +67,15 @@ pub struct Arena {
 
 #[derive(Debug)]
 struct ArenaItem {
-    pub el: Element,
+    pub value: Haml,
     pub parent: usize,
     pub children: Vec<usize>,
 }
 
 impl ArenaItem {
-    pub fn new(el: Element, parent: usize) -> ArenaItem {
+    pub fn new(value: Haml, parent: usize) -> ArenaItem {
         ArenaItem {
-            el,
+            value,
             parent,
             children: vec![],
         }
@@ -73,11 +83,11 @@ impl ArenaItem {
 }
 impl Arena {
     pub fn new() -> Arena {
-        Arena { items: vec![] }
+        Arena { items: vec![ ArenaItem::new(Haml::Root(), 0)] }
     }
 
-    pub fn insert(&mut self, el: Element, parent: usize) -> usize {
-        self.items.push(ArenaItem::new(el, parent));
+    pub fn insert(&mut self, haml: Haml, parent: usize) -> usize {
+        self.items.push(ArenaItem::new(haml, parent));
         let idx: usize = self.items.len() - 1;
         if idx > 0 {
             self.items[parent].children.push(idx);
@@ -97,14 +107,20 @@ impl Arena {
         &self.items[i]
     }
 
+    pub fn root(&self) -> &ArenaItem {
+        &self.items[0]
+    }
+
     pub fn from_whitespace(&self, start_index: usize, ws: usize) -> usize {
         let mut idx = start_index;
         let mut parent = start_index;
         loop {
             let i = &self.items[idx];
-            if i.el.whitespace < ws {
-                parent = idx;
-                break;
+            if let Haml::Element(el) = &i.value {
+                if el.whitespace < ws {
+                    parent = idx;
+                    break;
+                }
             }
             idx = i.parent;
         }
@@ -117,20 +133,63 @@ mod test {
     use super::*;
 
     #[test]
-    fn parsed() {
+    fn parse_text() {
+        let haml = r"\= test";
+        let mut p = Parser::new();
+        let e = p.parse(haml);
+        let id = e.root().children[0];
+        let item = e.item(id);
+        match &item.value {
+            Haml::Text(ref text) => assert_eq!("= test".to_owned(), *text),
+            _ => panic!("failed"),
+        }
+    }
+
+    #[test]
+    fn parse_element_text() {
+        let haml = "%hi\n\\value";
+        let mut p = Parser::new();
+        let e = p.parse(haml);
+        let id = e.root().children[0];
+        let item = e.item(id);
+        if let Haml::Element(el) = &item.value {
+            let mut it = item.children.iter();
+            match it.next() {
+                Some(child_id) => {
+                    let child = e.item(*child_id);
+                    match &child.value {
+                        Haml::Text(ref txt) => assert_eq!("value".to_owned(), *txt),
+                        _ => panic!("Failed"),
+                    }
+                },
+                None => panic!("Failed"),
+            }
+        }
+    }
+
+    #[test]
+    fn parse_element() {
         let haml = "%hi\n  .box\n    #b\n  %span";
         let mut p = Parser::new();
         let e = p.parse(haml);
-        let root = e.item(0);
-        let el = &root.el;
+        let id = e.item(0).children[0];
+        let item = e.item(id);
+        let el = match &item.value {
+            Haml::Element(el) => el,
+            _ => panic!("failed"),
+        };
+
         assert_eq!(Some("%hi".to_owned()), el.name);
         assert_eq!(ElementType::Other(), el.element_type);
         assert_eq!(0, el.whitespace);
 
-        let mut it = root.children.iter();
+        let mut it = item.children.iter();
         let b = it.next().unwrap();
         let bel = e.item(*b);
-        let el2 = &bel.el;
+        let el2 = match &bel.value {
+            Haml::Element(el) => el,
+            _ => panic!("failed")
+        };
         assert_eq!(Some(".box".to_owned()), el2.name);
         assert_eq!(ElementType::Div(), el2.element_type);
         assert_eq!(2, el2.whitespace);
@@ -138,14 +197,20 @@ mod test {
         let mut it2 = bel.children.iter();
         let c = it2.next().unwrap();
         let cel = e.item(*c);
-        let el3 = &cel.el;
+        let el3 = match &cel.value {
+            Haml::Element(el) => el,
+            _ => panic!("failed")
+        };
         assert_eq!(Some("#b".to_owned()), el3.name);
         assert_eq!(ElementType::Div(), el3.element_type);
         assert_eq!(4, el3.whitespace);
 
         let mut d = it.next().unwrap();
         let del = e.item(*d);
-        let el4 = &del.el;
+        let el4 = match &del.value {
+            Haml::Element(el) => el,
+            _ => panic!("failed")
+        };
         assert_eq!(Some("%span".to_owned()), el4.name);
         assert_eq!(ElementType::Other(), el4.element_type);
         assert_eq!(2, el4.whitespace);
