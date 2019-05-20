@@ -19,6 +19,18 @@ pub struct Element {
 }
 
 impl Element {
+    pub fn name(&self) -> Option<String> {
+        if let Some(name) = &self.name {
+            Some(name[1..].to_owned())
+        } else {
+            None
+        }
+    }
+
+    pub fn attributes(&self) -> String {
+        String::new()
+    }
+
     fn create_div<'a>(caps: &'a Captures) -> Element {
         Element {
             whitespace: Element::handle_whitespace(caps),

@@ -1,3 +1,55 @@
+use crate::parser::element::Element;
+use crate::parser::{Arena, ArenaItem, Haml};
+use std::collections::HashMap;
+
+pub struct Generator<'a> {
+    arena: &'a Arena,
+}
+
+fn arena_item_to_html(item: &ArenaItem) -> String {
+    let mut html = String::new();
+    let mut d : HashMap<String, String> = HashMap::new();
+    if let Haml::Element(el) = &item.value {
+        let name = el.name().unwrap();
+        // let class_and_ids = el.class_and_ids.unwrap();
+    }
+    
+    html
+}
+
+impl<'a> Generator<'a> {
+    pub fn new(arena: &'a Arena) -> Generator {
+        Generator {
+            arena
+        }
+    }
+
+    pub fn to_html(&self) -> String {
+        let mut html = String::new();
+        let root = self.arena.root();
+        for child in root.children.iter() {
+            if let Haml::Element(ref el) = &self.arena.item(*child).value {
+                if let Some(name) = &el.name() {
+                    html.push_str(&format!("<{} ", name));
+                    if let Some(class_and_ids) = &el.class_and_ids {
+                        html.push_str(&format!("{} ", class_and_ids));
+                    }
+
+                    if let Some(attributes) = &el.attributes {
+                        html.push_str(&format!("{} ", attributes));
+                    }
+
+                    if let Some(text) = &el.inline_text {
+                        html.push_str(&format!("{} ", text));
+                    }
+                    html.push_str(&format!("</{}>", name));
+                }
+            }
+        }
+        html
+    }
+}
+
 // use super::HtmlFormat;
 // use ast::{Arena, Html, HtmlElement, Node, ToHtml};
 // use common;

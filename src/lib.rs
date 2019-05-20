@@ -104,3 +104,41 @@
 // }
 
 mod parser;
+mod generator;
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use super::parser::{Arena, Parser};
+    use super::generator::Generator;
+    use regex::Regex;
+    use std::str::FromStr;
+
+    #[test]
+    fn pt() {
+        let haml = "%hi.there";
+        let mut p = Parser::new();
+        let a = p.parse(haml);
+        let g = Generator::new(&a);
+        println!("{}", g.to_html());
+        assert!(false);
+    }
+
+    #[test]
+    fn oz() {
+        let m  = "#b.a.b.c#a";
+        let mut r = Regex::from_str(r"(([#]{1}[^.]+)|([.]{1}[^#]))*").unwrap(); //|([#]{1}[^.|^#]+)").unwrap();
+        assert!(r.is_match(m));
+        let caps = r.captures(m).unwrap();
+        for c in caps.iter() {
+            if let Some(a) = c {
+                println!("{}", a.as_str());
+            } else {
+                println!("None");
+            }
+            
+        }
+        assert!(false);
+    }
+}

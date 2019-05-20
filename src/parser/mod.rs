@@ -1,4 +1,4 @@
-mod element;
+pub mod element;
 use element::{Element, ElementType};
 use regex::Regex;
 use std::collections::HashMap;
@@ -66,7 +66,7 @@ pub struct Arena {
 }
 
 #[derive(Debug)]
-struct ArenaItem {
+pub struct ArenaItem {
     pub value: Haml,
     pub parent: usize,
     pub children: Vec<usize>,
@@ -81,6 +81,7 @@ impl ArenaItem {
         }
     }
 }
+
 impl Arena {
     pub fn new() -> Arena {
         Arena { items: vec![ ArenaItem::new(Haml::Root(), 0)] }
