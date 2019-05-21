@@ -327,4 +327,20 @@ mod test {
         let element = Element::from_string(haml);
         assert_eq!(None, element);
     }
+
+    #[test]
+    fn test_reg() {
+        // let regx = r#"[{]{1}\s*(([:]{1}\w*)\s*(=>)\s*["]\w*["]\s*)+[}]"#;
+        let regx = r#"\s*([:]{1}(\w*)\s*(=>)\s*["]([^"])*["])"#;
+        let r = Regex::new(regx).unwrap();
+        let haml = r#"{:id => "test" :b => "it"}"#;
+        assert!(r.is_match(haml));
+        for m in r.find_iter(haml) {
+            let t = haml[m.start()..m.end()].trim().to_owned();
+            let b = t[1..].to_owned();
+            let d = b.split("=>");
+            println!("{:?}", d);
+        }
+        assert!(false);
+    }
 }
