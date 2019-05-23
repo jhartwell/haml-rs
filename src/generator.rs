@@ -30,14 +30,16 @@ impl<'a> Generator<'a> {
         for child in root.children.iter() {
             if let Haml::Element(ref el) = &self.arena.item(*child).value {
                 if let Some(name) = &el.name() {
-                    html.push_str(&format!("<{} ", name));
+                    html.push_str(&format!("<{}", name));
                     if let Some(class_and_ids) = &el.class_and_ids {
-                        html.push_str(&format!("{} ", class_and_ids));
+                        html.push_str(&format!("{}", class_and_ids));
                     }
 
-                    if let Some(attributes) = &el.attributes {
-                        html.push_str(&format!("{} ", attributes));
+                    for (k, v) in el.attributes().iter() {
+                        html.push_str(&format!(" {}='{}'", k.trim(),v.join(" ").trim()));
                     }
+
+                    html.push_str(">");
 
                     if let Some(text) = &el.inline_text {
                         html.push_str(&format!("{} ", text));

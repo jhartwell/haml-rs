@@ -1,6 +1,7 @@
 // use https://regexr.com/ to test regex
-use super::{STRING, WHITESPACE};
 use regex::{Captures, Regex};
+use crate::regex::{element, div, break_attributes};
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ElementType {
@@ -15,7 +16,7 @@ pub struct Element {
     pub element_type: ElementType,
     pub class_and_ids: Option<String>,
     pub inline_text: Option<String>,
-    pub attributes: Option<String>,
+    pub attributes: HashMap<String, Vec<String>>,
 }
 
 impl Element {
@@ -27,16 +28,32 @@ impl Element {
         }
     }
 
-    pub fn attributes(&self) -> String {
-        String::new()
+    pub fn attributes(&self) -> &HashMap<String, Vec<String>> {
+        &self.attributes
     }
 
+    fn div_id_class(caps: &Captures) -> Option<String> {
+        let mut value = String::new();
+        let name = match caps.name("name") {
+            Some(name) => name.as_str(),
+            _ => "",
+        };
+        let other = match caps.name("classid") {
+            Some(classid) => classid.as_str(),
+            _ => "",
+        };
+        let output = format!("{}{}", name.trim(), other.trim());
+        match output.is_empty() {
+            true => None,
+            _ => Some(output),
+        }
+    }
     fn create_div<'a>(caps: &'a Captures) -> Element {
         Element {
             whitespace: Element::handle_whitespace(caps),
-            name: Element::handle_name(caps),
+            name: Some("div".to_string()),
             element_type: ElementType::Div(),
-            class_and_ids: Element::handle_class_and_ids(caps),
+            class_and_ids: Element::div_id_class(caps),
             inline_text: Element::handle_inline_text(caps),
             attributes: Element::handle_attributes(caps),
         }
@@ -58,21 +75,51 @@ impl Element {
 
     fn handle_class_and_ids(caps: &Captures) -> Option<String> {
         match caps.name("classid") {
-            Some(class_id) => match class_id.as_str() {
+            Some(class_id) => {println!("{}", class_id.as_str()); match class_id.as_str() {
                 "" => None,
                 s => Some(s.to_owned()),
-            },
+            }},
             None => None,
         }
     }
 
-    fn handle_attributes(caps: &Captures) -> Option<String> {
+    fn format_value(val: &str) -> String {
+        let trimmed = val.trim();
+        trimmed.trim()[1..trimmed.len()-1].to_owned()
+    }
+    fn handle_attributes(caps: &Captures) -> HashMap<String, Vec<String>> {
+        let mut map : HashMap<String, Vec<String>> = HashMap::new();
+        println!("{:?}", caps.name("attributes"));
         match caps.name("attributes") {
             Some(attributes) => match attributes.as_str() {
-                "" => None,
-                s => Some(s.to_owned()),
+                "" => map,
+                s => {
+                    let r = Regex::new(&break_attributes()).unwrap();
+                    let m: HashMap<String, String> = HashMap::new();
+                    if r.is_match(s) {
+                        for attr in r.find_iter(s) {
+                            if attr.as_str().len() != s.len() {
+                                let mut attr_it = attr.as_str().split("=>");
+                                let id = attr_it.next();
+                                let val = attr_it.next();
+                                match (id, val) {
+                                    (_, None) => continue,
+                                    (None, _) => continue,
+                                    (Some(i),Some(v)) => {
+                                        if let Some(current_val) = map.get_mut(&i[1..].trim().to_owned()) {
+                                            (*current_val).push(Element::format_value(v));
+                                        } else {
+                                            map.insert(i[1..].to_owned(), vec![Element::format_value(v)]);
+                                        }
+                                    },
+                                }
+                            }
+                        }
+                    }
+                    map
+                }
             },
-            None => None,
+            None => map,
         }
     }
 
@@ -129,43 +176,6 @@ impl Element {
             }
         }
     }
-}
-
-fn element_name() -> String {
-    format!("[%]{{1}}{}", STRING)
-}
-
-fn element_class_id() -> String {
-    format!("[#|.]{{1}}\\w+")
-}
-
-fn element_text() -> String {
-    r"\s+.+".to_owned()
-}
-fn element() -> String {
-    format!(
-        "^(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<attributes>({}){{0,1}})(?P<text>{})*",
-        WHITESPACE,
-        element_name(),
-        element_class_id(),
-        attributes(),
-        element_text()
-    )
-}
-
-fn div() -> String {
-    format!(
-        "(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<attributes>({}){{0,1}})(?P<text>{})*",
-        WHITESPACE,
-        element_class_id(),
-        element_class_id(),
-        attributes(),
-        element_text()
-    )
-}
-
-fn attributes() -> String {
-    "[{{]((\\s*[:]\\w+){1}\\s*[=]\\s*[']\\w*[']\\s*)+[}}]".to_owned()
 }
 
 #[cfg(test)]
@@ -288,7 +298,7 @@ mod test {
         assert_eq!(Some("%hi".to_owned()), element.name);
         assert_eq!(ElementType::Other(), element.element_type);
         assert_eq!(None, element.class_and_ids);
-        assert_eq!(Some("{:id = 'me'}".to_owned()), element.attributes);
+        // assert_eq!(Some("{:id = 'me'}".to_owned()), element.attributes);
         assert_eq!(None, element.inline_text);
     }
 
@@ -301,10 +311,10 @@ mod test {
         assert_eq!(Some("%hi".to_owned()), element.name);
         assert_eq!(ElementType::Other(), element.element_type);
         assert_eq!(None, element.class_and_ids);
-        assert_eq!(
-            Some("{:id = 'no' :class = 'box'}".to_owned()),
-            element.attributes
-        );
+        // assert_eq!(
+        //     Some("{:id = 'no' :class = 'box'}".to_owned()),
+        //     element.attributes
+        // );
         assert_eq!(None, element.inline_text);
     }
 
@@ -314,10 +324,10 @@ mod test {
         let element = Element::from_string(haml).unwrap();;
         println!("test_basic_id_div");
         assert_eq!(0, element.whitespace);
-        assert_eq!(Some("#hi".to_owned()), element.name);
+        assert_eq!(Some("div".to_owned()), element.name);
         assert_eq!(ElementType::Div(), element.element_type);
-        assert_eq!(None, element.class_and_ids);
-        assert_eq!(None, element.attributes);
+        assert_eq!(Some("#hi".to_string()), element.class_and_ids);
+        // assert_eq!(None, element.attributes);
         assert_eq!(None, element.inline_text);
     }
 
@@ -326,5 +336,13 @@ mod test {
         let haml = "ab   %hi";
         let element = Element::from_string(haml);
         assert_eq!(None, element);
+    }
+
+    #[test]
+    fn test_id_and_classes() {
+        let haml = "#i.b.a";
+        let element = Element::from_string(haml).unwrap();
+        assert_eq!(Some("div".to_string()), element.name);
+        assert_eq!(Some("#i.b.a".to_string()), element.class_and_ids);
     }
 }

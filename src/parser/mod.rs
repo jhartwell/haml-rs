@@ -1,12 +1,9 @@
 pub mod element;
 use element::{Element, ElementType};
 use regex::Regex;
+use crate::regex::TEXT_REGEX;
 use std::collections::HashMap;
 
-pub const WHITESPACE: &str = r"\s*";
-pub const STRING: &str = r"\w+";
-
-pub const TEXT_REGEX: &str = r"^(\s*)[\\]";
 
 
 fn text_from_string(line: &str) -> Option<String> {
@@ -40,7 +37,6 @@ impl Parser {
         let mut previous_id = 0;
         let mut first_line = true;
         for line in haml.lines() {
-            println!("{:?}", text_from_string(line));
             if let Some(el) = Element::from_string(line) {
                 let ws = el.whitespace;
                 let element = Haml::Element(el);
@@ -52,7 +48,6 @@ impl Parser {
                     first_line = false;
                 }
             } else if let Some(text_line) = text_from_string(line) {
-                println!("hit");
                 self.arena.insert(Haml::Text(text_line), previous_id);
             }
         }

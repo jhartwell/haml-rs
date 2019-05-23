@@ -105,6 +105,7 @@
 
 mod parser;
 mod generator;
+mod regex;
 
 
 #[cfg(test)]
@@ -112,7 +113,7 @@ mod test {
     use super::*;
     use super::parser::{Arena, Parser};
     use super::generator::Generator;
-    use regex::Regex;
+    use ::regex::Regex;
     use std::str::FromStr;
 
     #[test]
@@ -127,18 +128,11 @@ mod test {
 
     #[test]
     fn oz() {
-        let m  = "#b.a.b.c#a";
-        let mut r = Regex::from_str(r"(([#]{1}[^.]+)|([.]{1}[^#]))*").unwrap(); //|([#]{1}[^.|^#]+)").unwrap();
-        assert!(r.is_match(m));
-        let caps = r.captures(m).unwrap();
-        for c in caps.iter() {
-            if let Some(a) = c {
-                println!("{}", a.as_str());
-            } else {
-                println!("None");
-            }
-            
-        }
+        let haml = "%hi{:id => \"test\" :class=>\"box\"}";
+        let mut p = Parser::new();
+        let a = p.parse(haml);
+        let g = Generator::new(&a);
+        println!("{}", g.to_html());
         assert!(false);
     }
 }
