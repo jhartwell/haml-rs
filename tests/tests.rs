@@ -1,42 +1,50 @@
-// extern crate haml;
-// #[macro_use]
-// extern crate serde_derive;
-// extern crate serde;
-// extern crate serde_json;
+extern crate haml;
+extern crate serde;
+extern crate serde_derive;
+extern crate serde_json;
 
-// use serde_json::Error;
+use serde_json::Error;
 
-// mod common;
-// use common::{TestCollection, Tests};
+mod common;
+use common::{TestCollection, Tests};
 
-// fn load_json() -> Result<Tests, Error> {
-//     let json = include_str!("tests.json");
-//     let tests: Tests = serde_json::from_str(&json)?;
-//     Ok(tests)
-// }
+fn load_json() -> Result<Tests, Error> {
+    let json = include_str!("tests.json");
+    let tests: Tests = serde_json::from_str(&json)?;
+    Ok(tests)
+}
 
-// /*
-//  * Run all non-optional tests in the json file
-//  */
-// #[test]
-// fn all() -> Result<(), Error> {
-//     let tests = load_json()?;
-//     tests.run();
-//     Ok(())
-// }
+/*
+ * Run all non-optional tests in the json file
+ */
+#[test]
+fn all() -> Result<(), Error> {
+    let tests = load_json()?;
+    tests.run();
+    Ok(())
+}
 
-// /*
-//  * This is used for testing one specific test from the JSON file at a time.
-//  * Pass in the key for the test data to run_test_by_name and it will execute
-//  * that given test
-//  */
-// #[test]
-// fn single() -> Result<(), Error> {
-//     let tests = load_json()?;
-//     tests.run_test_by_name("Nested content multiple simple tags");
-//     Ok(())
-// }
+/*
+ * This is used for testing one specific test from the JSON file at a time.
+ * Pass in the key for the test data to run_test_by_name and it will execute
+ * that given test
+ */
+#[test]
+fn single() -> Result<(), Error> {
+    let tests = load_json()?;
+    tests.run_test_by_name("inside a pre tag");
+    Ok(())
+}
 
+#[test]
+fn completed() -> Result<(), Error> {
+    let tests = load_json()?;
+    tests.run_test_by_name("Ruby-style attributes separated with newlines");
+    tests.run_test_by_name("HTML-style one attribute");
+    tests.run_test_by_name("a tag with colons");
+    tests.run_test_by_name("inside a pre tag");
+    Ok(())
+}
 // #[test]
 // fn completed_nested_content() -> Result<(), Error> {
 //     let tests = load_json()?;

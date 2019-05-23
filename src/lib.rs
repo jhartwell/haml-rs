@@ -103,36 +103,47 @@
 //     }
 // }
 
-mod parser;
 mod generator;
+mod parser;
 mod regex;
 
+use generator::Generator;
+use parser::Parser;
 
-#[cfg(test)]
-mod test {
-    use super::*;
-    use super::parser::{Arena, Parser};
-    use super::generator::Generator;
-    use ::regex::Regex;
-    use std::str::FromStr;
-
-    #[test]
-    fn pt() {
-        let haml = "%hi.there";
-        let mut p = Parser::new();
-        let a = p.parse(haml);
-        let g = Generator::new(&a);
-        println!("{}", g.to_html());
-        assert!(false);
-    }
-
-    #[test]
-    fn oz() {
-        let haml = "%hi{:id => \"test\" :class=>\"box\"}";
-        let mut p = Parser::new();
-        let a = p.parse(haml);
-        let g = Generator::new(&a);
-        println!("{}", g.to_html());
-        assert!(false);
-    }
+pub fn to_html(haml: &str) -> String {
+    let mut parser = Parser::new();
+    let ast = parser.parse(haml);
+    let generator = Generator::new(&ast);
+    generator.to_html()
 }
+
+// #[cfg(test)]
+// mod test {
+//     use super::*;
+//     use super::parser::{Arena, Parser};
+//     use super::generator::Generator;
+//     use ::regex::Regex;
+//     use std::str::FromStr;
+//     use crate::regex::element;
+//     #[test]
+//     fn pt() {
+//         let r = Regex::new(&element()).unwrap();
+
+//         let haml = "%p.class2.class1#big{:class => 'class1'}";
+//         let mut p = Parser::new();
+//         let a = p.parse(haml);
+//         let g = Generator::new(&a);
+//         println!("{}", g.to_html());
+//         assert!(false);
+//     }
+
+//     #[test]
+//     fn oz() {
+//         let haml = "%hi{:id => \"test\" :class=>\"box\"}";
+//         let mut p = Parser::new();
+//         let a = p.parse(haml);
+//         let g = Generator::new(&a);
+//         println!("{}", g.to_html());
+//         assert!(false);
+//     }
+// }
