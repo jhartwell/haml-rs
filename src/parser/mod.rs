@@ -1,5 +1,5 @@
 pub mod element;
-use crate::regex::{TEXT_REGEX, COMMENT_REGEX};
+use crate::regex::{COMMENT_REGEX, TEXT_REGEX};
 use element::{Element, ElementType};
 use regex::Regex;
 use std::collections::HashMap;
@@ -22,7 +22,7 @@ fn comment(line: &str) -> Option<String> {
             } else {
                 None
             }
-        },
+        }
         false => None,
     }
 }
@@ -50,7 +50,6 @@ impl Parser {
         let mut previous_id = 0;
         let mut first_line = true;
         for line in haml.lines() {
-            println!("Line: {}", line);
             if let Some(el) = Element::from_string(line) {
                 let ws = el.whitespace;
                 let element = Haml::Element(el);
@@ -64,7 +63,6 @@ impl Parser {
             } else if let Some(text_line) = text_from_string(line) {
                 self.arena.insert(Haml::Text(text_line), previous_id);
             } else if let Some(comment) = comment(line) {
-                println!("comment");
                 self.arena.insert(Haml::Comment(comment), previous_id);
             }
         }

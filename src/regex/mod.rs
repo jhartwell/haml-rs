@@ -56,7 +56,7 @@ pub fn ruby_attribute() -> String {
 }
 
 pub fn html_attribute() -> String {
-    r#"(([\w:]+)\s*[=]{1}\s*(['][^']*[']))*"#.to_owned()
+    r"[(]{1}[^]]+[)]{1}".to_owned()
 }
 
 pub fn class() -> String {

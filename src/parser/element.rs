@@ -1,7 +1,7 @@
 // use https://regexr.com/ to test regex
 use crate::regex::{div, element, element_class_id, html_attribute, ruby_attribute};
 use regex::{Captures, Regex};
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeSet};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ElementType {
@@ -16,19 +16,20 @@ pub struct Element {
     pub element_type: ElementType,
     pub inline_text: Option<String>,
     pub attributes: HashMap<String, Vec<String>>,
+    pub attribute_order: BTreeSet<String>,
 }
 
 impl Element {
     pub fn name(&self) -> Option<String> {
         if let Some(name) = &self.name {
-            Some(name[1..].to_owned())
+            Some(name.to_owned())
         } else {
             None
         }
     }
 
-    pub fn attributes(&self) -> &HashMap<String, Vec<String>> {
-        &self.attributes
+    pub fn attributes(&self) -> &BTreeSet<String> {
+        &self.attribute_order
     }
 
     fn div_id_class(caps: &Captures) -> Option<String> {
@@ -48,12 +49,14 @@ impl Element {
         }
     }
     fn create_div<'a>(caps: &'a Captures) -> Element {
+        let (attributes, order) = Element::handle_attributes(caps);
         Element {
             whitespace: Element::handle_whitespace(caps),
             name: Some("div".to_string()),
             element_type: ElementType::Div(),
             inline_text: Element::handle_inline_text(caps),
-            attributes: Element::handle_attributes(caps),
+            attributes: attributes,
+            attribute_order: order,
         }
     }
 
@@ -90,16 +93,11 @@ impl Element {
         separator: &str,
         map: &mut HashMap<String, Vec<String>>,
         start_index: usize,
+        order: &mut BTreeSet<String>,
     ) {
         if !attributes.is_empty() {
-            println!("{} - {}", attributes, attribute_regex);
             let r = Regex::new(attribute_regex).unwrap();
-
             if r.is_match(attributes) {
-                let c = r.captures(attributes).unwrap();
-                println!("{:?}", c);
-  
-                
                 for attr in r.find_iter(attributes) {
                     let mut attr_it = attr.as_str().split(separator);
                     let id = attr_it.next();
@@ -108,11 +106,18 @@ impl Element {
                         (_, None) => continue,
                         (None, _) => continue,
                         (Some(i), Some(v)) => {
-                            if let Some(current_val) = map.get_mut(&i[start_index..].trim().to_owned()) {
+                            if let Some(current_val) =
+                                map.get_mut(&i[start_index..].trim().to_owned())
+                            {
                                 (*current_val).push(Element::format_value(v));
                             } else {
-                                map.insert(i[start_index..].to_owned(), vec![Element::format_value(v)]);
+                                order.insert(i[start_index..].to_owned());
+                                map.insert(
+                                    i[start_index..].to_owned(),
+                                    vec![Element::format_value(v)],
+                                );
                             }
+                            
                         }
                     }
                 }
@@ -120,21 +125,9 @@ impl Element {
         }
     }
 
-    fn handle_attributes(caps: &Captures) -> HashMap<String, Vec<String>> {
+    fn handle_attributes(caps: &Captures) -> (HashMap<String, Vec<String>>, BTreeSet<String>) {
         let mut map: HashMap<String, Vec<String>> = HashMap::new();
-        match caps.name("ruby_attributes") {
-            Some(attributes) => {
-                Element::handle_attrs(attributes.as_str(), &ruby_attribute(), "=>", &mut map, 1)
-            }
-            None => (),
-        }
-        match caps.name("html_attributes") {
-            Some(attributes) => {
-                Element::handle_attrs(attributes.as_str(), &html_attribute(), "=", &mut map, 0)
-            }
-            None => (),
-        }
-        
+        let mut order: BTreeSet<String> = BTreeSet::new();
         match caps.name("classid") {
             Some(c) => {
                 let class_id_reg = Regex::new(&element_class_id()).unwrap();
@@ -142,15 +135,34 @@ impl Element {
                 for ci in class_id_reg.find_iter(classid_value) {
                     let value = classid_value[ci.start()..ci.end()].to_string();
                     match &value[0..1] {
-                        "#" => Element::add_to_map(&mut map, "id", &value[1..]),
-                        "." => Element::add_to_map(&mut map, "class", &value[1..]),
+                        "#" => {
+                            map.insert("id".to_owned(), vec![value[1..].to_owned()]);
+                            order.insert("id".to_string());
+                        }
+                        "." => {
+                            Element::add_to_map(&mut map, "class", &value[1..]);
+                            order.insert("class".to_string());
+                        }
                         _ => (),
                     }
                 }
             }
             None => (),
         }
-        map
+        match caps.name("ruby_attributes") {
+            Some(attributes) => {
+                Element::handle_attrs(attributes.as_str(), &ruby_attribute(), "=>", &mut map, 1, &mut order)
+            }
+            None => (),
+        }
+        match caps.name("html_attributes") {
+            Some(attributes) => {
+                Element::handle_attrs(attributes.as_str(), &html_attribute(), "=", &mut map, 0, &mut order)
+            }
+            None => (),
+        }
+
+        (map, order)
     }
 
     fn handle_inline_text(caps: &Captures) -> Option<String> {
@@ -161,12 +173,14 @@ impl Element {
     }
 
     fn create_element<'a>(caps: &'a Captures) -> Element {
+        let (attributes, order) = Element::handle_attributes(caps);
         Element {
             whitespace: Element::handle_whitespace(caps),
             name: Element::handle_name(caps),
             element_type: ElementType::Other(),
             inline_text: Element::handle_inline_text(caps),
-            attributes: Element::handle_attributes(caps),
+            attributes: attributes,
+            attribute_order: order,
         }
     }
 
@@ -197,6 +211,14 @@ impl Element {
                 },
                 _ => None,
             },
+        }
+    }
+
+    pub fn get_attribute(&self, name: &str) -> Option<String> {
+        if let Some(attributes) = self.attributes.get(name) {
+            Some(attributes.join(" ").trim().to_owned())
+        } else {
+            None
         }
     }
 }

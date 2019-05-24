@@ -28,16 +28,18 @@ impl<'a> Generator<'a> {
         for child in root.children.iter() {
             let item = &self.arena.item(*child);
             if let Haml::Element(ref el) = item.value {
+                println!("{:?}", el);
                 if let Some(name) = &el.name() {
                     html.push_str(&format!("<{}", name));
 
-                    for (k, v) in el.attributes().iter() {
-                        let mut attr_value = v.join(" ");
-                        attr_value = attr_value.trim().to_string();
-                        if k.trim() == "checked" && attr_value == "true" {
-                            html.push_str(" checked");
-                        } else {
-                        html.push_str(&format!(" {}='{}'", k.trim(), attr_value));
+                    for key in el.attributes().iter() {
+                        if let Some(value) = el.get_attribute(key) {
+                            // this needs to be separated eventuallyas this is html5 specific
+                            if key.trim() == "checked" && value == "true" {
+                                html.push_str(" checked");
+                            } else {
+                                html.push_str(&format!(" {}='{}'", key.trim(), value.to_owned()));
+                            }
                         }
                     }
 
@@ -48,13 +50,13 @@ impl<'a> Generator<'a> {
                     if let Some(text) = &el.inline_text {
                         html.push_str(&format!("{} ", text));
                     }
-                    
+
                     let count = item.children.len();
                     let mut index = 0;
                     for c in item.children.iter() {
                         let i = &self.arena.item(*c);
                         match &i.value {
-                            Haml::Text(s) => html.push_str(&format!("{}",s.trim())),
+                            Haml::Text(s) => html.push_str(&format!("{}", s.trim())),
                             Haml::Comment(c) => html.push_str(&format!("<!-- {} -->", c)),
                             _ => (),
                         }
@@ -62,7 +64,6 @@ impl<'a> Generator<'a> {
                         if index < count {
                             html.push('\n');
                         }
-                        
                     }
                     html.push_str(&format!("</{}>", name));
                 }

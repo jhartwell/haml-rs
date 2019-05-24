@@ -32,7 +32,7 @@ fn all() -> Result<(), Error> {
 #[test]
 fn single() -> Result<(), Error> {
     let tests = load_json()?;
-    tests.run_test_by_name("boolean attribute with HTML");
+    tests.run_test_by_name("an implicit div with a CSS id");
     Ok(())
 }
 
@@ -40,11 +40,17 @@ fn single() -> Result<(), Error> {
 fn completed() -> Result<(), Error> {
     let tests = load_json()?;
     tests.run_test_by_name("Ruby-style attributes separated with newlines");
-    tests.run_test_by_name("HTML-style one attribute");
     tests.run_test_by_name("a tag with colons");
     tests.run_test_by_name("inside a pre tag");
     tests.run_test_by_name("a tag with underscores");
     tests.run_test_by_name("an inline markup comment");
+    tests.run_test_by_name("a simple Haml tag");
+    tests.run_test_by_name("a tag with a CSS class");
+    tests.run_test_by_name("a tag with multiple CSS classes");
+    tests.run_test_by_name("a tag with a CSS id");
+    tests.run_test_by_name("a tag with multiple CSS id's");
+    tests.run_test_by_name("a tag with a class followed by an id");
+    tests.run_test_by_name("a tag with an id followed by a class");
     Ok(())
 }
 // #[test]
