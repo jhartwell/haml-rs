@@ -6,11 +6,11 @@ pub const TEXT_REGEX: &str = r"^(\s*)\w+";
 pub const COMMENT_REGEX: &str = r"\s*/(?P<comment>.*)";
 
 fn element_name() -> String {
-    r"[%]{1}[\w|:]+".to_owned()
+    r"[%]{1}[\w|:|-]+".to_owned()
 }
 
 pub fn element_class_id() -> String {
-    format!("[#|.]{{1}}\\w+")
+    format!("[#|.]{{1}}[\\w|-]+")
 }
 
 fn element_text() -> String {
@@ -27,6 +27,14 @@ pub fn element() -> String {
         html_attributes(),
         element_text()
     )
+}
+
+pub fn prolog() -> String {
+    r"^!!!\s*(?P<type>(\w*))".to_owned()
+}
+
+pub fn sanitize() -> String {
+    r"^(\s*)(&=)\s*[']{1}(?P<text>([^'|^\n]*))".to_owned()
 }
 
 pub fn div() -> String {

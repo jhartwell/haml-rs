@@ -1,7 +1,7 @@
 // use https://regexr.com/ to test regex
 use crate::regex::{div, element, element_class_id, html_attribute, ruby_attribute};
 use regex::{Captures, Regex};
-use std::collections::{HashMap, BTreeSet};
+use std::collections::{BTreeSet, HashMap};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ElementType {
@@ -48,8 +48,10 @@ impl Element {
             _ => Some(output),
         }
     }
+
     fn create_div<'a>(caps: &'a Captures) -> Element {
-        let (attributes, order) = Element::handle_attributes(caps);
+        let (mut attributes, order) = Element::handle_attributes(caps);
+
         Element {
             whitespace: Element::handle_whitespace(caps),
             name: Some("div".to_string()),
@@ -69,7 +71,13 @@ impl Element {
 
     fn handle_name(caps: &Captures) -> Option<String> {
         match caps.name("name") {
-            Some(name) => Some(name.as_str().to_owned()),
+            Some(name) => {
+                let mut val = name.as_str().to_owned();
+                if val.starts_with("%") {
+                    val = val[1..].to_owned();
+                }
+                Some(val.as_str().to_owned())
+            }
             None => None,
         }
     }
@@ -117,7 +125,6 @@ impl Element {
                                     vec![Element::format_value(v)],
                                 );
                             }
-                            
                         }
                     }
                 }
@@ -128,6 +135,17 @@ impl Element {
     fn handle_attributes(caps: &Captures) -> (HashMap<String, Vec<String>>, BTreeSet<String>) {
         let mut map: HashMap<String, Vec<String>> = HashMap::new();
         let mut order: BTreeSet<String> = BTreeSet::new();
+        if let Some(c) = caps.name("name") {
+            let name = c.as_str();
+            if name.starts_with(".") {
+                map.insert("class".to_owned(), vec![name[1..].to_owned()]);
+                order.insert("class".to_owned());
+            } else if name.starts_with("#") {
+                map.insert("id".to_owned(), vec![name[1..].to_owned()]);
+                order.insert("id".to_owned());
+            }
+        }
+
         match caps.name("classid") {
             Some(c) => {
                 let class_id_reg = Regex::new(&element_class_id()).unwrap();
@@ -150,15 +168,25 @@ impl Element {
             None => (),
         }
         match caps.name("ruby_attributes") {
-            Some(attributes) => {
-                Element::handle_attrs(attributes.as_str(), &ruby_attribute(), "=>", &mut map, 1, &mut order)
-            }
+            Some(attributes) => Element::handle_attrs(
+                attributes.as_str(),
+                &ruby_attribute(),
+                "=>",
+                &mut map,
+                1,
+                &mut order,
+            ),
             None => (),
         }
         match caps.name("html_attributes") {
-            Some(attributes) => {
-                Element::handle_attrs(attributes.as_str(), &html_attribute(), "=", &mut map, 0, &mut order)
-            }
+            Some(attributes) => Element::handle_attrs(
+                attributes.as_str(),
+                &html_attribute(),
+                "=",
+                &mut map,
+                0,
+                &mut order,
+            ),
             None => (),
         }
 

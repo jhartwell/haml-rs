@@ -2,6 +2,7 @@ use haml;
 // use haml::HtmlFormat;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
+use haml::Format;
 
 pub type Tests = HashMap<String, HashMap<String, Test>>;
 
@@ -62,7 +63,18 @@ impl Test {
             _ => {
                 //let format = self.get_format();
                 // let actual_html = haml::to_html(&self.haml, format);
-                let actual_html = haml::to_html(&self.haml);
+                let mut format: Format = Format::Html5();
+                if let Some(config) = &self.config {
+                    if let Some(config_format) = &config.format {
+                        match config_format.as_str() {
+                            "xhtml" => format = Format::XHtml(),
+                            "html4" => format = Format::Html4(),
+                            "html5" => format = Format::Html5(),
+                            _ => format = Format::Html5(),
+                        }
+                    }
+                }
+                let actual_html = haml::to_html(&self.haml, &format);
                 assert_eq!(self.html, actual_html);
             }
         }

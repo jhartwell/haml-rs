@@ -32,13 +32,20 @@ fn all() -> Result<(), Error> {
 #[test]
 fn single() -> Result<(), Error> {
     let tests = load_json()?;
-    tests.run_test_by_name("an implicit div with a CSS id");
+    tests.run_test_by_name("code following '&='");
     Ok(())
 }
 
 #[test]
 fn completed() -> Result<(), Error> {
     let tests = load_json()?;
+    tests.run_test_by_name("Inline content multiple simple tags");
+    tests.run_test_by_name("Inline content tag with CSS");
+    tests.run_test_by_name("Inline content simple tag");
+    tests.run_test_by_name("a class with dashes");
+    tests.run_test_by_name("a class with underscores");
+    tests.run_test_by_name("an all-numeric class");
+    tests.run_test_by_name("a tag with PascalCase");
     tests.run_test_by_name("Ruby-style attributes separated with newlines");
     tests.run_test_by_name("a tag with colons");
     tests.run_test_by_name("inside a pre tag");
@@ -51,6 +58,12 @@ fn completed() -> Result<(), Error> {
     tests.run_test_by_name("a tag with multiple CSS id's");
     tests.run_test_by_name("a tag with a class followed by an id");
     tests.run_test_by_name("a tag with an id followed by a class");
+    tests.run_test_by_name("an implicit div with a CSS id");
+    tests.run_test_by_name("an implicit div with a CSS class");
+    tests.run_test_by_name("multiple simple Haml tags");
+    tests.run_test_by_name("a tag with dashes");
+    tests.run_test_by_name("a tag with camelCase");
+    tests.run_test_by_name("code following '&='");
     Ok(())
 }
 // #[test]

@@ -1,8 +1,33 @@
+mod doctype;
 pub mod element;
-use crate::regex::{COMMENT_REGEX, TEXT_REGEX};
+
+use crate::regex::{prolog, COMMENT_REGEX, TEXT_REGEX, sanitize};
+use crate::Format;
+use doctype::Doctype;
 use element::{Element, ElementType};
 use regex::Regex;
 use std::collections::HashMap;
+
+
+fn sanitize_html(line: &str) -> Option<String> {
+    let r = Regex::new(&sanitize()).unwrap();
+    match r.is_match(line) {
+        true => {
+            let caps = r.captures(line).unwrap();
+            match caps.name("text") {
+                Some(m) => Some(m.as_str()
+                        .replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace("'", "&apos;")
+                        .replace("\"", "&quot;")
+                        .to_owned()),
+                None => None
+            }
+        }
+        false => None
+    }
+}
 
 fn text_from_string(line: &str) -> Option<String> {
     let r = Regex::new(TEXT_REGEX).unwrap();
@@ -33,8 +58,10 @@ pub enum Haml {
     Element(Element),
     Text(String),
     Comment(String),
+    Prolog(String),
     Temp(String, u32, u32),
 }
+
 pub struct Parser {
     arena: Arena,
 }
@@ -46,11 +73,15 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self, haml: &str) -> &Arena {
+    pub fn parse(&mut self, haml: &str, format: &Format) -> &Arena {
         let mut previous_id = 0;
         let mut first_line = true;
+        let prolog_regex = Regex::new(&prolog()).unwrap();
         for line in haml.lines() {
-            if let Some(el) = Element::from_string(line) {
+            // matches lines that start with &=
+            if let Some(sanitized_html) = sanitize_html(line) {
+                self.arena.insert(Haml::Text(sanitized_html), previous_id);
+            } else if let Some(el) = Element::from_string(line) {
                 let ws = el.whitespace;
                 let element = Haml::Element(el);
                 if !first_line {
@@ -64,6 +95,13 @@ impl Parser {
                 self.arena.insert(Haml::Text(text_line), previous_id);
             } else if let Some(comment) = comment(line) {
                 self.arena.insert(Haml::Comment(comment), previous_id);
+            } else if prolog_regex.is_match(line) {
+                let caps = prolog_regex.captures(line).unwrap();
+                let value = match caps.name("type") {
+                    Some(m) => Some(m.as_str()),
+                    _ => None,
+                };
+                let doctype = Doctype::new(&format, value);
             }
         }
         &self.arena
@@ -138,6 +176,65 @@ impl Arena {
             idx = i.parent;
         }
         parent
+    }
+
+    pub fn to_html(&self) -> String {
+        let mut html = String::new();
+        let root = self.root();
+        for child in root.children.iter() {
+            html.push_str(&self.item_to_html(self.item(*child)));
+        }
+        html
+    }
+
+    fn item_to_html(&self, item: &ArenaItem) -> String {
+        match &item.value {
+            Haml::Text(text) => text.trim().to_owned(),
+            Haml::Comment(comment) => format!("<!-- {} -->", comment.trim()),
+            Haml::Element(_) => self.element_to_html(&item),
+            _ => String::new(),
+        }
+    }
+
+    fn element_to_html(&self, item: &ArenaItem) -> String {
+        let mut html = String::new();
+        if let Haml::Element(el) = &item.value {
+            html.push_str(&format!("<{}", el.name().unwrap()));
+            for key in el.attributes().iter() {
+                if let Some(value) = el.get_attribute(key) {
+                    // this needs to be separated eventuallyas this is html5 specific
+                    if key.trim() == "checked" && value == "true" {
+                        html.push_str(" checked");
+                    } else {
+                        html.push_str(&format!(" {}='{}'", key.trim(), value.to_owned()));
+                    }
+                }
+            }
+            html.push('>');
+            if let Some(text) = &el.inline_text {
+                html.push_str(&format!("{}", text.trim()));
+            }
+
+            if item.children.len() > 0 {
+                if el.name().unwrap() == "div" {
+                    html.push('\n');
+                }
+                let mut index = 0;
+                for c in item.children.iter() {
+                    let i = self.item(*c);
+                    html.push_str(&self.item_to_html(i));
+                    if index + 1 < item.children.len() {
+                        html.push('\n');
+                    }
+                    index += 1;
+                }
+                if el.name().unwrap() == "div" {
+                    html.push('\n');
+                }
+            }
+            html.push_str(&format!("</{}>", el.name().unwrap()));
+        }
+        html
     }
 }
 
