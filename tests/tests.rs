@@ -32,7 +32,7 @@ fn all() -> Result<(), Error> {
 #[test]
 fn single() -> Result<(), Error> {
     let tests = load_json()?;
-    tests.run_test_by_name("code following '&='");
+    tests.run_test_by_name("Nested content multiple simple tags");
     Ok(())
 }
 
@@ -64,6 +64,7 @@ fn completed() -> Result<(), Error> {
     tests.run_test_by_name("a tag with dashes");
     tests.run_test_by_name("a tag with camelCase");
     tests.run_test_by_name("code following '&='");
+    tests.run_test_by_name("an XHTML 1.1 basic doctype");
     Ok(())
 }
 // #[test]

@@ -500,17 +500,20 @@
   
       "content in an 'escaped' filter" : {
         "haml" : ":escaped\n  <&\">",
-        "html" : "&lt;&amp;&quot;&gt;"
+        "html" : "&lt;&amp;&quot;&gt;",
+        "optional" : true
       },
   
       "content in a 'preserve' filter" : {
         "haml" : ":preserve\n  hello\n\n%p",
-        "html" : "hello&#x000A;\n<p></p>"
+        "html" : "hello&#x000A;\n<p></p>",
+        "optional" : true
       },
   
       "content in a 'plain' filter" : {
         "haml" : ":plain\n  hello\n\n%p",
-        "html" : "hello\n<p></p>"
+        "html" : "hello\n<p></p>",
+        "optional" : true
       },
   
       "content in a 'css' filter (XHTML)" : {
@@ -518,7 +521,8 @@
         "html" : "<style type='text/css'>\n  /*<![CDATA[*/\n    hello\n  /*]]>*/\n</style>\n<p></p>",
         "config" : {
           "format" : "xhtml"
-        }
+        },
+        "optional" : true
       },
   
       "content in a 'javascript' filter (XHTML)" : {
@@ -526,7 +530,8 @@
         "html" : "<script type='text/javascript'>\n  //<![CDATA[\n    a();\n  //]]>\n</script>\n<p></p>",
         "config" : {
           "format" : "xhtml"
-        }
+        },
+        "optional" : true
       },
   
       "content in a 'css' filter (HTML)" : {
@@ -534,7 +539,8 @@
         "html" : "<style>\n  hello\n</style>\n<p></p>",
         "config" : {
           "format" : "html5"
-        }
+        },
+        "optional" : true
       },
   
       "content in a 'javascript' filter (HTML)" : {
@@ -542,7 +548,8 @@
         "html" : "<script>\n  a();\n</script>\n<p></p>",
         "config" : {
           "format" : "html5"
-        }
+        },
+        "optional" : true
       }
     },
   

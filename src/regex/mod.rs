@@ -1,7 +1,7 @@
 pub const WHITESPACE: &str = r"\s*";
 pub const STRING: &str = r"\w+";
 
-pub const TEXT_REGEX: &str = r"^(\s*)\w+";
+pub const TEXT_REGEX: &str = r"^(\s*)(?P<text>.+)";
 
 pub const COMMENT_REGEX: &str = r"\s*/(?P<comment>.*)";
 

@@ -58,6 +58,7 @@ impl Test {
 
     pub fn run(&self, name: &str) {
         println!("Running test: {}", name);
+        println!("Input Haml:\n {}", self.haml);
         match self.optional {
             Some(true) => return,
             _ => {

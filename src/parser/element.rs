@@ -9,6 +9,8 @@ pub enum ElementType {
     Other(),
 }
 
+
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Element {
     pub whitespace: usize,

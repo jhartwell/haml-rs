@@ -31,9 +31,14 @@ fn sanitize_html(line: &str) -> Option<String> {
 
 fn text_from_string(line: &str) -> Option<String> {
     let r = Regex::new(TEXT_REGEX).unwrap();
-    match r.is_match(line) {
-        true => Some(line[1..].to_owned()),
-        false => None,
+    match r.captures(line) {
+        Some(m) => {
+            match m.name("text") {
+                Some(n) => Some(n.as_str().to_owned()),
+                None => None
+            }
+        },
+        None => None
     }
 }
 
@@ -57,6 +62,7 @@ pub enum Haml {
     Root(),
     Element(Element),
     Text(String),
+    InnerText(String),
     Comment(String),
     Prolog(String),
     Temp(String, u32, u32),
@@ -91,8 +97,6 @@ impl Parser {
                     previous_id = self.arena.insert(element, 0);
                     first_line = false;
                 }
-            } else if let Some(text_line) = text_from_string(line) {
-                self.arena.insert(Haml::Text(text_line), previous_id);
             } else if let Some(comment) = comment(line) {
                 self.arena.insert(Haml::Comment(comment), previous_id);
             } else if prolog_regex.is_match(line) {
@@ -102,6 +106,9 @@ impl Parser {
                     _ => None,
                 };
                 let doctype = Doctype::new(&format, value);
+                self.arena.insert(Haml::Prolog(doctype.to_html()), previous_id);
+            } else if let Some(text_line) = text_from_string(line) {
+                self.arena.insert(Haml::Text(text_line), previous_id);
             }
         }
         &self.arena
@@ -184,14 +191,16 @@ impl Arena {
         for child in root.children.iter() {
             html.push_str(&self.item_to_html(self.item(*child)));
         }
-        html
+        html.trim().to_owned()
     }
 
     fn item_to_html(&self, item: &ArenaItem) -> String {
         match &item.value {
-            Haml::Text(text) => text.trim().to_owned(),
+            Haml::Text(text) => format!("{}\n",text.to_owned()),
             Haml::Comment(comment) => format!("<!-- {} -->", comment.trim()),
             Haml::Element(_) => self.element_to_html(&item),
+            Haml::InnerText(text) => text.to_owned(),
+            Haml::Prolog(prolog) => prolog.to_owned(),
             _ => String::new(),
         }
     }
@@ -213,27 +222,26 @@ impl Arena {
             html.push('>');
             if let Some(text) = &el.inline_text {
                 html.push_str(&format!("{}", text.trim()));
-            }
-
+            } 
             if item.children.len() > 0 {
-                if el.name().unwrap() == "div" {
+                let mut index = 0;
+                if Some("pre".to_owned()) != el.name() {
                     html.push('\n');
                 }
-                let mut index = 0;
                 for c in item.children.iter() {
                     let i = self.item(*c);
-                    html.push_str(&self.item_to_html(i));
-                    if index + 1 < item.children.len() {
-                        html.push('\n');
+                    let mut cur = self.item_to_html(i).to_owned();
+                    if index + 1 == item.children.len() {
+                        // let temp = 
+                        cur = cur.trim_end().to_owned(); //temp;
                     }
+                    html.push_str(&cur);
                     index += 1;
                 }
-                if el.name().unwrap() == "div" {
-                    html.push('\n');
-                }
             }
-            html.push_str(&format!("</{}>", el.name().unwrap()));
+            html.push_str(&format!("</{}>\n", el.name().unwrap()));
         }
+        println!("{}", html);
         html
     }
 }
