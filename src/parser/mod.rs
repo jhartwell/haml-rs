@@ -1,7 +1,7 @@
 mod doctype;
 pub mod element;
 
-use crate::regex::{prolog, COMMENT_REGEX, TEXT_REGEX, sanitize};
+use crate::regex::{prolog, COMMENT_REGEX, TEXT_REGEX, sanitize, silent_comment};
 use crate::Format;
 use doctype::Doctype;
 use element::{Element, ElementType};
@@ -57,6 +57,19 @@ fn comment(line: &str) -> Option<String> {
     }
 }
 
+fn silent(line: &str) -> Option<Haml> {
+    let r = Regex::new(&silent_comment()).unwrap();
+    match r.captures(line) {
+        Some(m) => {
+            match m.name("ws") {
+                Some(ws) => Some(Haml::SilentComment(ws.as_str().len())),
+                None => Some(Haml::SilentComment(0)),
+            }
+        },
+        None => None,
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Haml {
     Root(),
@@ -65,6 +78,7 @@ pub enum Haml {
     InnerText(String),
     Comment(String),
     Prolog(String),
+    SilentComment(usize),
     Temp(String, u32, u32),
 }
 
@@ -84,10 +98,14 @@ impl Parser {
         let mut first_line = true;
         let prolog_regex = Regex::new(&prolog()).unwrap();
         for line in haml.lines() {
-            // matches lines that start with &=
+        //     // matches lines that start with &=
             if let Some(sanitized_html) = sanitize_html(line) {
                 self.arena.insert(Haml::Text(sanitized_html), previous_id);
-            } else if let Some(el) = Element::from_string(line) {
+                first_line = false;
+            } else if let Some(sc) = silent(line) {
+                previous_id = self.arena.insert(sc, previous_id);
+                first_line = false;
+            }else if let Some(el) = Element::from_string(line) {
                 let ws = el.whitespace;
                 let element = Haml::Element(el);
                 if !first_line {
@@ -99,7 +117,9 @@ impl Parser {
                 }
             } else if let Some(comment) = comment(line) {
                 previous_id = self.arena.insert(Haml::Comment(comment), previous_id);
+                first_line = false;
             } else if prolog_regex.is_match(line) {
+                first_line = false;
                 let caps = prolog_regex.captures(line).unwrap();
                 let value = match caps.name("type") {
                     Some(m) => Some(m.as_str()),
@@ -108,6 +128,7 @@ impl Parser {
                 let doctype = Doctype::new(&format, value);
                 self.arena.insert(Haml::Prolog(doctype.to_html()), previous_id);
             } else if let Some(text_line) = text_from_string(line) {
+                first_line = false;
                 self.arena.insert(Haml::Text(text_line), previous_id);
             }
         }
@@ -174,13 +195,28 @@ impl Arena {
         let mut parent = start_index;
         loop {
             let i = &self.items[idx];
-            if let Haml::Element(el) = &i.value {
-                if el.whitespace < ws {
-                    parent = idx;
-                    break;
-                }
+            match &i.value {
+                Haml::Element(ref el) => {
+                    if el.whitespace < ws {
+                        parent = idx;
+                        break;
+                    }
+                },
+                Haml::SilentComment(whitespace) => {
+                    if *whitespace < ws {
+                        parent = idx;
+                        break;
+                    }
+                },
+                _ => idx = i.parent,
             }
-            idx = i.parent;
+            // if let Haml::Element(el) = &i.value {
+            //     if el.whitespace < ws {
+            //         parent = idx;
+            //         break;
+            //     }
+            // }
+            // idx = i.parent;
         }
         parent
     }
@@ -189,7 +225,12 @@ impl Arena {
         let mut html = String::new();
         let root = self.root();
         for child in root.children.iter() {
-            html.push_str(&self.item_to_html(self.item(*child)));
+            let item = self.item(*child);
+            match item.value {
+                Haml::SilentComment(_) => (),
+                _ => html.push_str(&self.item_to_html(item)),
+            }
+            // html.push_str(&self.item_to_html(self.item(*child)));
         }
         html.trim().to_owned()
     }
@@ -228,7 +269,6 @@ impl Arena {
             html.push_str(&format!("<{}", el.name().unwrap()));
             for key in el.attributes().iter() {
                 if let Some(value) = el.get_attribute(key) {
-                    println!("{} - {}",key, value);
                     // this needs to be separated eventuallyas this is html5 specific
                     if key.trim() == "checked" && value == "true" {
                         html.push_str(" checked");
@@ -239,13 +279,13 @@ impl Arena {
             }
             
             html.push('>');
-            
+            if !el.self_close {
             if let Some(text) = &el.inline_text {
                 html.push_str(&format!("{}", text.trim()));
             } 
             if item.children.len() > 0 {
                 let mut index = 0;
-                if Some("pre".to_owned()) != el.name() {
+                if Some("pre".to_owned()) != el.name() && Some("textarea".to_owned()) != el.name() {
                     html.push('\n');
                 }
                 for c in item.children.iter() {
@@ -253,11 +293,12 @@ impl Arena {
                     html.push_str(&self.item_to_html(i));
                 }
             }
-            if Some("pre".to_owned()) == el.name() {
+            if Some("pre".to_owned()) == el.name() || Some("textarea".to_owned()) == el.name() {
                 html  =html.trim_end().to_owned();
             }
             if Some("input".to_owned()) != el.name() {
             html.push_str(&format!("</{}>\n", el.name().unwrap()));
+            }
             }
         }
         html

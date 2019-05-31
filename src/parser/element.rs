@@ -19,6 +19,7 @@ pub struct Element {
     pub inline_text: Option<String>,
     pub attributes: HashMap<String, Vec<String>>,
     pub attribute_order: BTreeSet<String>,
+    pub self_close: bool,
 }
 
 impl Element {
@@ -53,7 +54,6 @@ impl Element {
 
     fn create_div<'a>(caps: &'a Captures) -> Element {
         let (mut attributes, order) = Element::handle_attributes(caps);
-
         Element {
             whitespace: Element::handle_whitespace(caps),
             name: Some("div".to_string()),
@@ -61,9 +61,19 @@ impl Element {
             inline_text: Element::handle_inline_text(caps),
             attributes: attributes,
             attribute_order: order,
+            self_close: Element::handle_self_close(caps),
         }
     }
 
+    fn handle_self_close(caps: &Captures) -> bool {
+        match caps.name("self_close") {
+            Some(m) => match m.as_str() {
+                "" => false,
+                _ => true
+            },
+            None => false
+        }
+    }
     fn handle_whitespace(caps: &Captures) -> usize {
         match caps.name("ws") {
             Some(ws) => ws.as_str().len(),
@@ -213,6 +223,7 @@ impl Element {
             inline_text: Element::handle_inline_text(caps),
             attributes: attributes,
             attribute_order: order,
+            self_close: Element::handle_self_close(caps),
         }
     }
 

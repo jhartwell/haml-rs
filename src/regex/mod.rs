@@ -17,15 +17,24 @@ fn element_text() -> String {
     r"\s+.+".to_owned()
 }
 
+fn self_close() -> String {
+    r"[/]".to_owned()
+}
+
+pub fn silent_comment() -> String {
+    r"^(?P<ws>\s*)(-#)".to_owned()
+}
+
 pub fn element() -> String {
     format!(
-        "^(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<ruby_attributes>({}){{0,1}})(?P<html_attributes>({}){{0,1}})(?P<text>{})*",
+        "^(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<ruby_attributes>({}){{0,1}})(?P<html_attributes>({}){{0,1}})(?P<self_close>{})(?P<text>{})*",
         WHITESPACE,
         element_name(),
         element_class_id(),
         ruby_attributes(),
         html_attributes(),
-        element_text()
+        self_close(),
+        element_text(),
     )
 }
 
@@ -39,13 +48,14 @@ pub fn sanitize() -> String {
 
 pub fn div() -> String {
     format!(
-        "(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<ruby_attributes>({}){{0,1}})(?P<html_attributes>({}){{0,1}})(?P<text>{})*",
+        "(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<ruby_attributes>({}){{0,1}})(?P<html_attributes>({}){{0,1}})(?P<self_close>{})(?P<text>{})*",
         WHITESPACE,
         element_class_id(),
         element_class_id(),
         ruby_attributes(),
         html_attributes(),
-        element_text()
+        self_close(),
+        element_text(),
     )
 }
 
