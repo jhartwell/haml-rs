@@ -55,8 +55,8 @@ fn ruby_attributes() -> String {
 }
 
 fn html_attributes() -> String {
-    //r"[(]{1}[^]]+[)]{1}".to_owned()
-    r"\([\w:]*\s*[=]\s*[\w]*\)".to_owned()
+    r"[(]{1}[^)]+[)]{1}".to_owned()
+    //r"\([\w:]*\s*[=]\s*[\w]*\)".to_owned()
 }
 
 pub fn ruby_attribute() -> String {
@@ -64,7 +64,7 @@ pub fn ruby_attribute() -> String {
 }
 
 pub fn html_attribute() -> String {
-    r"[(]{1}[^]]+[)]{1}".to_owned()
+    r#"(([^\s|^(]+)\s*(=){1}\s*["]{0,1}([^"|^)]*)["]{0,1})"#.to_owned()
 }
 
 pub fn class() -> String {

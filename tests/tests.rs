@@ -32,13 +32,15 @@ fn all() -> Result<(), Error> {
 #[test]
 fn single() -> Result<(), Error> {
     let tests = load_json()?;
-    tests.run_test_by_name("Nested content multiple simple tags");
+    tests.run_test_by_name("boolean attribute with HTML");
     Ok(())
 }
 
 #[test]
 fn completed() -> Result<(), Error> {
     let tests = load_json()?;
+    tests.run_test_by_name("boolean attribute with HTML");
+    tests.run_test_by_name("a nested markup comment nested markup comment");
     tests.run_test_by_name("Inline content multiple simple tags");
     tests.run_test_by_name("Inline content tag with CSS");
     tests.run_test_by_name("Inline content simple tag");

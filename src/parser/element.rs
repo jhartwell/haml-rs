@@ -85,8 +85,10 @@ impl Element {
     }
 
     fn format_value(val: &str) -> String {
-        let trimmed = val.trim();
-        trimmed.trim()[1..trimmed.len() - 1].to_owned()
+        match val.starts_with("\"") {
+            true => val[1..val.len() -1].to_owned(),
+            false => val.to_owned()
+        }
     }
 
     fn add_to_map(map: &mut HashMap<String, Vec<String>>, key: &str, value: &str) {

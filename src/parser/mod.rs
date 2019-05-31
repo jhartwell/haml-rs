@@ -48,7 +48,7 @@ fn comment(line: &str) -> Option<String> {
         true => {
             let caps = r.captures(line).unwrap();
             if let Some(c) = caps.name("comment") {
-                Some(c.as_str().trim().to_owned())
+                Some(c.as_str().to_owned())
             } else {
                 None
             }
@@ -98,7 +98,7 @@ impl Parser {
                     first_line = false;
                 }
             } else if let Some(comment) = comment(line) {
-                self.arena.insert(Haml::Comment(comment), previous_id);
+                previous_id = self.arena.insert(Haml::Comment(comment), previous_id);
             } else if prolog_regex.is_match(line) {
                 let caps = prolog_regex.captures(line).unwrap();
                 let value = match caps.name("type") {
@@ -197,7 +197,7 @@ impl Arena {
     fn item_to_html(&self, item: &ArenaItem) -> String {
         match &item.value {
             Haml::Text(text) => format!("{}\n",text.to_owned()),
-            Haml::Comment(comment) => format!("<!-- {} -->", comment.trim()),
+            Haml::Comment(comment) => self.comment_to_html(&item),
             Haml::Element(_) => self.element_to_html(&item),
             Haml::InnerText(text) => text.to_owned(),
             Haml::Prolog(prolog) => prolog.to_owned(),
@@ -205,21 +205,41 @@ impl Arena {
         }
     }
 
+    fn comment_to_html(&self, item: &ArenaItem) -> String {
+        let mut html = String::new();
+        if let Haml::Comment(line) = &item.value {
+            html.push_str(&format!("<!--{}", line));
+        }
+        if item.children.len() > 0 {
+            html.push('\n');
+        } else {
+            html.push(' ');
+        }
+        for child in item.children.iter() {
+            let item = self.item(*child);
+            html.push_str(&self.item_to_html(item));
+        }
+        html.push_str("-->");
+        html
+    }
     fn element_to_html(&self, item: &ArenaItem) -> String {
         let mut html = String::new();
         if let Haml::Element(el) = &item.value {
             html.push_str(&format!("<{}", el.name().unwrap()));
             for key in el.attributes().iter() {
                 if let Some(value) = el.get_attribute(key) {
+                    println!("{} - {}",key, value);
                     // this needs to be separated eventuallyas this is html5 specific
                     if key.trim() == "checked" && value == "true" {
                         html.push_str(" checked");
                     } else {
-                        html.push_str(&format!(" {}='{}'", key.trim(), value.to_owned()));
+                        html.push_str(&format!(" {}='{}'", key, value.to_owned()));
                     }
                 }
             }
+            
             html.push('>');
+            
             if let Some(text) = &el.inline_text {
                 html.push_str(&format!("{}", text.trim()));
             } 
@@ -230,18 +250,16 @@ impl Arena {
                 }
                 for c in item.children.iter() {
                     let i = self.item(*c);
-                    let mut cur = self.item_to_html(i).to_owned();
-                    if index + 1 == item.children.len() {
-                        // let temp = 
-                        cur = cur.trim_end().to_owned(); //temp;
-                    }
-                    html.push_str(&cur);
-                    index += 1;
+                    html.push_str(&self.item_to_html(i));
                 }
             }
+            if Some("pre".to_owned()) == el.name() {
+                html  =html.trim_end().to_owned();
+            }
+            if Some("input".to_owned()) != el.name() {
             html.push_str(&format!("</{}>\n", el.name().unwrap()));
+            }
         }
-        println!("{}", html);
         html
     }
 }
