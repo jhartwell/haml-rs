@@ -1,8 +1,8 @@
 use haml;
 // use haml::HtmlFormat;
+use haml::Format;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
-use haml::Format;
 
 pub type Tests = HashMap<String, HashMap<String, Test>>;
 
@@ -75,6 +75,7 @@ impl Test {
                         }
                     }
                 }
+                println!("Format - {:?}", format);
                 let actual_html = haml::to_html(&self.haml, &format);
                 assert_eq!(self.html, actual_html);
             }

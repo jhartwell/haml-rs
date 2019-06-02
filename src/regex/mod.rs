@@ -6,11 +6,11 @@ pub const TEXT_REGEX: &str = r"^(\s*)(?P<text>.+)";
 pub const COMMENT_REGEX: &str = r"\s*/(?P<comment>.*)";
 
 fn element_name() -> String {
-    r"[%]{1}[\w|:|-]+".to_owned()
+    r"[%]{1}[\w|:|\-|_]+".to_owned()
 }
 
 pub fn element_class_id() -> String {
-    format!("[#|.]{{1}}[\\w|-]+")
+    r"[#|.]{1}[\w|\-|_]+".to_owned()
 }
 
 fn element_text() -> String {
@@ -27,7 +27,7 @@ pub fn silent_comment() -> String {
 
 pub fn element() -> String {
     format!(
-        "^(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<ruby_attributes>({}){{0,1}})(?P<html_attributes>({}){{0,1}})(?P<self_close>{})(?P<text>{})*",
+        "^(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<ruby_attributes>({}){{0,1}})(?P<html_attributes>({}){{0,1}})(?P<self_close>{}{{0,1}})(?P<text>{})*",
         WHITESPACE,
         element_name(),
         element_class_id(),
@@ -48,7 +48,7 @@ pub fn sanitize() -> String {
 
 pub fn div() -> String {
     format!(
-        "(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<ruby_attributes>({}){{0,1}})(?P<html_attributes>({}){{0,1}})(?P<self_close>{})(?P<text>{})*",
+        "(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<ruby_attributes>({}){{0,1}})(?P<html_attributes>({}){{0,1}})(?P<self_close>{}{{0,1}})(?P<text>{})*",
         WHITESPACE,
         element_class_id(),
         element_class_id(),

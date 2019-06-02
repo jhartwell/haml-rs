@@ -596,7 +596,8 @@
   
       "code following '&='" : {
         "haml" : "&= '<\"&>'",
-        "html" : "&lt;&quot;&amp;&gt;"
+        "html" : "&lt;&quot;&amp;&gt;",
+        "optional": true
       },
   
       "code following '=' when escape_haml is set to true" : {
@@ -604,7 +605,8 @@
         "html" : "&lt;&quot;&amp;&gt;",
         "config" : {
           "escape_html" : "true"
-        }
+        },
+        "optional": true
       },
   
       "code following '!=' when escape_haml is set to true" : {
@@ -612,7 +614,8 @@
         "html" : "<\"&>",
         "config" : {
           "escape_html" : "true"
-        }
+        },
+        "optional": true
       }
   
     },

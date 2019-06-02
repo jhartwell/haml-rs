@@ -9,8 +9,6 @@ pub enum ElementType {
     Other(),
 }
 
-
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct Element {
     pub whitespace: usize,
@@ -69,9 +67,9 @@ impl Element {
         match caps.name("self_close") {
             Some(m) => match m.as_str() {
                 "" => false,
-                _ => true
+                _ => true,
             },
-            None => false
+            None => false,
         }
     }
     fn handle_whitespace(caps: &Captures) -> usize {
@@ -96,8 +94,8 @@ impl Element {
 
     fn format_value(val: &str) -> String {
         match val.starts_with("\"") {
-            true => val[1..val.len() -1].to_owned(),
-            false => val.to_owned()
+            true => val[1..val.len() - 1].to_owned(),
+            false => val.to_owned(),
         }
     }
 
@@ -230,7 +228,6 @@ impl Element {
     pub fn from_string(haml: &str) -> Option<Element> {
         let element_regex = Regex::new(&element()).unwrap();
         let div_regex = Regex::new(&div());
-
         let element: Option<Element> = match Regex::new(&element()) {
             Ok(el) => match el.is_match(haml) {
                 true => {
