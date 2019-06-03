@@ -60,7 +60,6 @@ impl XHtmlFormatter {
 
     fn element_to_html(&self, item: &ArenaItem, arena: &Arena) -> String {
         let mut html = String::new();
-        println!("{:?}", item);
         if let Haml::Element(el) = &item.value {
             html.push_str(&format!("<{}", el.name().unwrap()));
             for key in el.attributes().iter() {

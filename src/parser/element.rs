@@ -107,6 +107,25 @@ impl Element {
         }
     }
 
+    // parse the attributes by hand so that atomic values are covered
+    fn parse_html_attributes(attributes: &str, map: &mut HashMap<String, Vec<String>>, order: &mut BTreeSet<String>) {
+        if !attributes.is_empty() {
+            let mut key = String::new();
+            let mut value = String::new();
+            let mut buffer = String::new();
+            let mut seen_key = false;
+            let words : Vec<&str> = attributes.split(" ").collect();
+            let length = words.len();
+            for i in 0..words.len() {
+                if i + 1 < length {
+                    if words[1 + i] == "=" {
+
+                    }
+                }
+            }
+            
+        }
+    }
     fn handle_attrs(
         attributes: &str,
         attribute_regex: &str,
@@ -262,172 +281,3 @@ impl Element {
         }
     }
 }
-
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-
-//     #[test]
-//     fn whitespace_counts() {
-//         let haml = "    %hi";
-//         let el = Element::from_string(haml).unwrap();
-//         assert_eq!(4, el.whitespace);
-//     }
-//     #[test]
-//     fn basic_element() {
-//         let t = "%hi";
-//         let el = Element::from_string(t).unwrap();
-//         println!("basic_element");
-//         assert_eq!(0, el.whitespace);
-//         assert_eq!(Some("%hi".to_owned()), el.name);
-//     }
-
-//     #[test]
-//     fn element_with_single_class() {
-//         let t = "%hi.box";
-//         let el = Element::from_string(t).unwrap();
-//         println!("element_with_single_class");
-//         assert_eq!(0, el.whitespace);
-//         assert_eq!(Some("%hi".to_owned()), el.name);
-//         assert_eq!(Some(".box".to_owned()), el.class_and_ids);
-//     }
-
-//     #[test]
-//     fn element_with_two_classes() {
-//         let t = "%hi.box.top";
-//         let el = Element::from_string(t).unwrap();
-//         println!("element_with_two_classes");
-//         assert_eq!(Some("%hi".to_owned()), el.name);
-//         assert_eq!(Some(".box.top".to_owned()), el.class_and_ids);
-//     }
-
-//     #[test]
-//     fn element_with_id() {
-//         let t = "%hi#there";
-//         let el = Element::from_string(t).unwrap();
-//         println!("element_with_id");
-//         assert_eq!(Some("%hi".to_owned()), el.name);
-//         assert_eq!(Some("#there".to_owned()), el.class_and_ids);
-//     }
-
-//     #[test]
-//     fn element_with_id_and_class() {
-//         let id_then_class = "%hi#there.box";
-//         let id_then_class_el = Element::from_string(id_then_class).unwrap();
-//         assert_eq!(0, id_then_class_el.whitespace);
-//         assert_eq!(Some("%hi".to_owned()), id_then_class_el.name);
-//         assert_eq!(
-//             Some("#there.box".to_owned()),
-//             id_then_class_el.class_and_ids
-//         );
-
-//         let class_then_id = "%hi.box#there";
-//         let class_then_id_element = Element::from_string(class_then_id).unwrap();;
-//         assert_eq!(0, class_then_id_element.whitespace);
-//         assert_eq!(Some("%hi".to_owned()), class_then_id_element.name);
-//         assert_eq!(ElementType::Other(), class_then_id_element.element_type);
-//         assert_eq!(
-//             Some(".box#there".to_owned()),
-//             class_then_id_element.class_and_ids
-//         );
-
-//         let class_then_id_then_class = "%hi.box#there.modal";
-//         let class_then_id_then_class_element =
-//             Element::from_string(class_then_id_then_class).unwrap();;
-//         assert_eq!(0, class_then_id_then_class_element.whitespace);
-//         assert_eq!(
-//             Some("%hi".to_owned()),
-//             class_then_id_then_class_element.name
-//         );
-//         assert_eq!(
-//             ElementType::Other(),
-//             class_then_id_then_class_element.element_type
-//         );
-//         assert_eq!(
-//             Some(".box#there.modal".to_owned()),
-//             class_then_id_then_class_element.class_and_ids
-//         );
-
-//         let id_then_class_class = "%hi#there.box.modal";
-//         let id_then_class_class_element = Element::from_string(id_then_class_class).unwrap();;
-//         assert_eq!(0, id_then_class_class_element.whitespace);
-//         assert_eq!(Some("%hi".to_owned()), id_then_class_class_element.name);
-//         assert_eq!(
-//             ElementType::Other(),
-//             id_then_class_class_element.element_type
-//         );
-//         assert_eq!(
-//             Some("#there.box.modal".to_owned()),
-//             id_then_class_class_element.class_and_ids
-//         );
-//     }
-
-//     #[test]
-//     fn element_with_text_after() {
-//         let basic_element = "%hi value";
-//         let element = Element::from_string(basic_element).unwrap();;
-//         println!("element_with_text_after");
-//         assert_eq!(0, element.whitespace);
-//         assert_eq!(Some("%hi".to_owned()), element.name);
-//         assert_eq!(ElementType::Other(), element.element_type);
-//         assert_eq!(None, element.class_and_ids);
-//         assert_eq!(Some("value".to_owned()), element.inline_text);
-//     }
-
-//     #[test]
-//     fn element_with_single_attribute() {
-//         let haml = "%hi{:id = 'me'}";
-//         let element = Element::from_string(haml).unwrap();;
-//         println!("element_with_single_attribute");
-//         assert_eq!(0, element.whitespace);
-//         assert_eq!(Some("%hi".to_owned()), element.name);
-//         assert_eq!(ElementType::Other(), element.element_type);
-//         assert_eq!(None, element.class_and_ids);
-//         // assert_eq!(Some("{:id = 'me'}".to_owned()), element.attributes);
-//         assert_eq!(None, element.inline_text);
-//     }
-
-//     #[test]
-//     fn element_with_multiple_attributes() {
-//         let haml = "%hi{:id = 'no' :class = 'box'}";
-//         let element = Element::from_string(haml).unwrap();;
-//         println!("element_with_multiple_attributes");
-//         assert_eq!(0, element.whitespace);
-//         assert_eq!(Some("%hi".to_owned()), element.name);
-//         assert_eq!(ElementType::Other(), element.element_type);
-//         assert_eq!(None, element.class_and_ids);
-//         // assert_eq!(
-//         //     Some("{:id = 'no' :class = 'box'}".to_owned()),
-//         //     element.attributes
-//         // );
-//         assert_eq!(None, element.inline_text);
-//     }
-
-//     #[test]
-//     fn test_basic_id_div() {
-//         let haml = "#hi";
-//         let element = Element::from_string(haml).unwrap();;
-//         println!("test_basic_id_div");
-//         assert_eq!(0, element.whitespace);
-//         assert_eq!(Some("div".to_owned()), element.name);
-//         assert_eq!(ElementType::Div(), element.element_type);
-//         assert_eq!(Some("#hi".to_string()), element.class_and_ids);
-//         // assert_eq!(None, element.attributes);
-//         assert_eq!(None, element.inline_text);
-//     }
-
-//     #[test]
-//     fn test_not_beginning_of_line() {
-//         let haml = "ab   %hi";
-//         let element = Element::from_string(haml);
-//         assert_eq!(None, element);
-//     }
-
-//     #[test]
-//     fn test_id_and_classes() {
-//         let haml = "#i.b.a";
-//         let element = Element::from_string(haml).unwrap();
-//         assert_eq!(Some("div".to_string()), element.name);
-//         assert_eq!(Some("#i.b.a".to_string()), element.class_and_ids);
-//     }
-// }

@@ -18,6 +18,5 @@ pub fn to_html(haml: &str, format: &Format) -> String {
     let mut parser = Parser::new(format);
     let ast = parser.parse(haml);
     let generator = formatter::get_formatter(format);
-    println!("{:?}", generator);
     generator.generate(&ast)
 }

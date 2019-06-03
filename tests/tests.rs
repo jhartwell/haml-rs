@@ -32,7 +32,7 @@ fn all() -> Result<(), Error> {
 #[test]
 fn single() -> Result<(), Error> {
     let tests = load_json()?;
-    tests.run_test_by_name("a self-closing tag (XHTML)");
+    tests.run_test_by_name("HTML-style tag with an atomic attribute");
     Ok(())
 }
 
