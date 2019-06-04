@@ -17,7 +17,7 @@ impl HtmlFormatter for Html4Formatter {
                 Haml::Comment(_) => html.push_str(&self.comment_to_html(item, arena)),
                 Haml::Text(text) => html.push_str(&format!("{}\n", text.to_owned())),
                 Haml::InnerText(text) => html.push_str(&text),
-                Haml::Prolog(Some(prolog)) => html.push_str(&prolog),
+                Haml::Prolog(prolog) => html.push_str(&self.prolog_to_html(prolog)),
                 _ => (),
             }
         }
@@ -28,6 +28,19 @@ impl HtmlFormatter for Html4Formatter {
 impl Html4Formatter {
     pub fn new() -> Html4Formatter {
         Html4Formatter {}
+    }
+
+    fn prolog_to_html(&self, value: &Option<String>) -> &str {
+        match value {
+            None => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">"#,
+            Some(v) => {
+                match v.to_lowercase().as_str() {
+"frameset" => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">"#,
+            "strict" => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">"#,
+            _ => "",
+                }
+            }
+        }
     }
 
     fn item_to_html(&self, item: &ArenaItem, arena: &Arena) -> String {

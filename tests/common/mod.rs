@@ -9,6 +9,7 @@ pub type Tests = HashMap<String, HashMap<String, Test>>;
 pub trait TestCollection {
     fn run(&self);
     fn run_test_by_name(&self, name: &str);
+    fn run_test_section(&self, name: &str);
 }
 
 impl TestCollection for Tests {
@@ -29,6 +30,14 @@ impl TestCollection for Tests {
             }
         }
     }
+
+    fn run_test_section(&self, name: &str) {
+        if let Some(val) = self.get(name) {
+            for (test_name, test) in val {
+                test.run(test_name);
+            }
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -40,30 +49,12 @@ pub struct Test {
 }
 
 impl Test {
-    // fn get_format(&self) -> HtmlFormat {
-    //     let default_format = HtmlFormat::Html5();
-    //     match self.config {
-    //         Some(ref config) => match config.format {
-    //             Some(ref format) => match format.as_ref() {
-    //                 "xhtml" => HtmlFormat::XHtml(),
-    //                 "html" => HtmlFormat::Html4(),
-    //                 "html5" => HtmlFormat::Html5(),
-    //                 _ => default_format,
-    //             },
-    //             _ => default_format,
-    //         },
-    //         _ => default_format,
-    //     }
-    // }
-
     pub fn run(&self, name: &str) {
         println!("Running test: {}", name);
         println!("Input Haml:\n {}", self.haml);
         match self.optional {
             Some(true) => return,
             _ => {
-                //let format = self.get_format();
-                // let actual_html = haml::to_html(&self.haml, format);
                 let mut format: Format = Format::Html5();
                 if let Some(config) = &self.config {
                     if let Some(config_format) = &config.format {

@@ -24,6 +24,14 @@ fn all() -> Result<(), Error> {
     Ok(())
 }
 
+#[test]
+fn section() -> Result<(), Error> {
+    let tests = load_json()?;
+    tests.run_test_section("basic Haml tags and CSS");
+    tests.run_test_section("headers");
+    Ok(())
+}
+
 /*
  * This is used for testing one specific test from the JSON file at a time.
  * Pass in the key for the test data to run_test_by_name and it will execute
@@ -32,13 +40,16 @@ fn all() -> Result<(), Error> {
 #[test]
 fn single() -> Result<(), Error> {
     let tests = load_json()?;
-    tests.run_test_by_name("HTML-style tag with a CSS id and 'id' as an attribute");
+    tests.run_test_by_name("a self-closing tag (XHTML)");
     Ok(())
 }
 
 #[test]
 fn completed() -> Result<(), Error> {
     let tests = load_json()?;
+    tests.run_test_by_name("HTML-style 'class' as an attribute");
+    tests.run_test_by_name("an HTML 4 frameset doctype");
+    tests.run_test_by_name("HTML-style tag with a CSS id and 'id' as an attribute");
     tests.run_test_by_name("an HTML 5 XML prolog (silent)");
     tests.run_test_by_name("an HTML 5 doctype");
     tests.run_test_by_name("an XHTML 1.1 doctype");

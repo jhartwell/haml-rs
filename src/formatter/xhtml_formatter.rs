@@ -2,8 +2,12 @@ use crate::arena::{Arena, ArenaItem};
 use crate::formatter::HtmlFormatter;
 use crate::parser::Haml;
 
+use std::collections::HashMap;
+
 #[derive(Debug)]
-pub struct XHtmlFormatter;
+pub struct XHtmlFormatter {
+    self_closing_tags: HashMap<String, bool>,
+}
 
 impl HtmlFormatter for XHtmlFormatter {
     fn generate(&self, arena: &Arena) -> String {
@@ -27,7 +31,12 @@ impl HtmlFormatter for XHtmlFormatter {
 
 impl XHtmlFormatter {
     pub fn new() -> XHtmlFormatter {
-        XHtmlFormatter {}
+        let mut self_closing_tags : HashMap<String, bool> = HashMap::new();
+        self_closing_tags.insert("input".to_string(), true);
+        self_closing_tags.insert("meta".to_string(), true);
+        XHtmlFormatter {
+            self_closing_tags
+        }
     }
 
     fn prolog_to_html(&self, value: &Option<String>) -> &str {
@@ -35,7 +44,7 @@ impl XHtmlFormatter {
             None =>r#"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">"#,
             Some(val) => {
         
-        match val.as_ref() {
+        match val.to_lowercase().as_ref() {
             "strict" => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">"#,
             "frameset" => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Frameset//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">"#,
             "5" => "<!DOCTYPE html>",
@@ -43,6 +52,7 @@ impl XHtmlFormatter {
             "basic" => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML Basic 1.1//EN" "http://www.w3.org/TR/xhtml-basic/xhtml-basic11.dtd">"#,
             "mobile" => r#"<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN" "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">"#,
             "rdfa" => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN" "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd">"#,
+            "xml" => r#"<?xml version='1.0' encoding='utf-8' ?>"#,
             _ => ""
         }}}
     }
@@ -89,8 +99,9 @@ impl XHtmlFormatter {
                 }
             }
 
-            if el.name() == Some("input".to_owned()) {
+            if self.self_closing_tags.contains_key(&el.name().unwrap()) || el.self_close {
                 html.push_str(" />");
+                return html;
             } else {
                 html.push('>');
             }

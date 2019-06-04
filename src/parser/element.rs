@@ -108,7 +108,13 @@ impl Element {
             val = val[0..val.len() - 1].to_string();
         }
         if let Some(values) = map.get_mut(key) {
-            (*values).push(val);
+            match key {
+                "id" => {
+                    (*values).clear();
+                    (*values).push(format!("id_{}", val));
+                }
+                _ => (*values).push(val),
+            }
         } else {
             map.insert(key.to_owned(), vec![val]);
         }
@@ -124,7 +130,7 @@ impl Element {
             let mut seen_key = false;
             let mut step = false;
             let mut attrs = String::new();
-            if attributes.starts_with("(")  {
+            if attributes.starts_with("(") {
                 attrs = attributes[1..].to_owned();
             }
 
