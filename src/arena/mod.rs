@@ -107,7 +107,7 @@ impl Arena {
     //         Haml::Comment(comment) => self.comment_to_html(&item),
     //         Haml::Element(_) => self.element_to_html(&item),
     //         Haml::InnerText(text) => text.to_owned(),
-    //         Haml::Prolog(prolog) => prolog.to_owned(),
+    //         Haml::Prolog(Some(prolog)) => prolog.to_owned(),
     //         _ => String::new(),
     //     }
     // }

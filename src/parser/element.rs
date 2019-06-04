@@ -100,30 +100,79 @@ impl Element {
     }
 
     fn add_to_map(map: &mut HashMap<String, Vec<String>>, key: &str, value: &str) {
+        let mut val = value.to_string();
+        if val.starts_with("'") {
+            val = val[1..].to_string();
+        }
+        if val.ends_with("'") {
+            val = val[0..val.len() - 1].to_string();
+        }
         if let Some(values) = map.get_mut(key) {
-            (*values).push(value.to_owned());
+            (*values).push(val);
         } else {
-            map.insert(key.to_owned(), vec![value.to_owned()]);
+            map.insert(key.to_owned(), vec![val]);
         }
     }
 
     // parse the attributes by hand so that atomic values are covered
-    fn parse_html_attributes(attributes: &str, map: &mut HashMap<String, Vec<String>>, order: &mut BTreeSet<String>) {
+    fn parse_html_attributes(
+        attributes: &str,
+        map: &mut HashMap<String, Vec<String>>,
+        order: &mut BTreeSet<String>,
+    ) {
         if !attributes.is_empty() {
-            let mut key = String::new();
-            let mut value = String::new();
-            let mut buffer = String::new();
             let mut seen_key = false;
-            let words : Vec<&str> = attributes.split(" ").collect();
-            let length = words.len();
-            for i in 0..words.len() {
-                if i + 1 < length {
-                    if words[1 + i] == "=" {
+            let mut step = false;
+            let mut attrs = String::new();
+            if attributes.starts_with("(")  {
+                attrs = attributes[1..].to_owned();
+            }
 
+            if attrs.ends_with(")") {
+                attrs = attrs[0..attrs.len() - 1].to_owned();
+            }
+
+            let words: Vec<&str> = attrs.split(" ").collect();
+            let mut words_iter = words.iter();
+            let mut buffer = words_iter.next();
+            let mut temp = "";
+            loop {
+                if let Some(wrd) = buffer {
+                    let split: Vec<&str> = wrd.split("=").collect();
+                    if split.len() > 1 {
+                        let key = split.get(0).unwrap();
+                        let value = split.get(1).unwrap();
+                        Element::add_to_map(map, key, value);
+                        order.insert(key.to_string());
+                        buffer = words_iter.next();
+                    } else {
+                        if let Some(next) = words_iter.next() {
+                            match *next {
+                                "=" => match words_iter.next() {
+                                    Some(w) => {
+                                        Element::add_to_map(map, *wrd, w);
+                                        order.insert((*wrd).to_owned());
+                                        buffer = words_iter.next();
+                                    }
+                                    None => break,
+                                },
+                                e => {
+                                    map.insert((*wrd).to_owned(), vec![]);
+                                    order.insert((*wrd).to_owned());
+                                    temp = e;
+                                    buffer = Some(&temp);
+                                }
+                            }
+                        } else {
+                            map.insert((*wrd).to_owned(), vec![]);
+                            order.insert((*wrd).to_owned());
+                            break;
+                        }
                     }
+                } else {
+                    break;
                 }
             }
-            
         }
     }
     fn handle_attrs(
@@ -210,14 +259,9 @@ impl Element {
             None => (),
         }
         match caps.name("html_attributes") {
-            Some(attributes) => Element::handle_attrs(
-                attributes.as_str(),
-                &html_attribute(),
-                "=",
-                &mut map,
-                0,
-                &mut order,
-            ),
+            Some(attributes) => {
+                Element::parse_html_attributes(attributes.as_str(), &mut map, &mut order)
+            }
             None => (),
         }
 

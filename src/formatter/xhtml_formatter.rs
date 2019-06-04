@@ -17,7 +17,7 @@ impl HtmlFormatter for XHtmlFormatter {
                 Haml::Comment(_) => html.push_str(&self.comment_to_html(item, arena)),
                 Haml::Text(text) => html.push_str(&format!("{}\n", text.to_owned())),
                 Haml::InnerText(text) => html.push_str(&text),
-                Haml::Prolog(prolog) => html.push_str(&prolog),
+                Haml::Prolog(prolog) => html.push_str(&self.prolog_to_html(prolog)),
                 _ => (),
             }
         }
@@ -30,13 +30,30 @@ impl XHtmlFormatter {
         XHtmlFormatter {}
     }
 
+    fn prolog_to_html(&self, value: &Option<String>) -> &str {
+        match value {
+            None =>r#"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">"#,
+            Some(val) => {
+        
+        match val.as_ref() {
+            "strict" => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">"#,
+            "frameset" => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Frameset//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">"#,
+            "5" => "<!DOCTYPE html>",
+            "1.1" => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">"#,
+            "basic" => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML Basic 1.1//EN" "http://www.w3.org/TR/xhtml-basic/xhtml-basic11.dtd">"#,
+            "mobile" => r#"<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN" "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">"#,
+            "rdfa" => r#"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN" "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd">"#,
+            _ => ""
+        }}}
+    }
+
     fn item_to_html(&self, item: &ArenaItem, arena: &Arena) -> String {
         match &item.value {
             Haml::Text(text) => format!("{}\n", text.to_owned()),
             Haml::Comment(comment) => self.comment_to_html(item, arena),
             Haml::Element(_) => self.element_to_html(item, arena),
             Haml::InnerText(text) => text.to_owned(),
-            Haml::Prolog(prolog) => prolog.to_owned(),
+            Haml::Prolog(prolog) => self.prolog_to_html(prolog).to_string(),
             _ => String::new(),
         }
     }
@@ -67,7 +84,7 @@ impl XHtmlFormatter {
                     if key.trim() == "checked" && value == "true" {
                         html.push_str(&format!(" checked='checked'"));
                     } else {
-                        html.push_str(&format!(" {}='{}'", key.trim(), value));
+                        html.push_str(&format!(" {}='{}'", key, value.to_owned()));
                     }
                 }
             }

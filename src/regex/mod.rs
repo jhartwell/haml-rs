@@ -39,7 +39,7 @@ pub fn element() -> String {
 }
 
 pub fn prolog() -> String {
-    r"^!!!\s*(?P<type>(\w*))".to_owned()
+    r"^\s*!!!\s*(?P<type>([\w|.|\d]*))".to_owned()
 }
 
 pub fn sanitize() -> String {
@@ -74,7 +74,7 @@ pub fn ruby_attribute() -> String {
 }
 
 pub fn html_attribute() -> String {
-    r#"(([^\s|^(]+)\s*(=){1}\s*["]{0,1}([^"|^)]*)["]{0,1})"#.to_owned()
+    r#"(([^\s|^(]+)\s*(=){1}\s*[']{0,1}([^'|^)]*)[']{0,1})"#.to_owned()
 }
 
 pub fn class() -> String {

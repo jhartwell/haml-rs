@@ -32,13 +32,19 @@ fn all() -> Result<(), Error> {
 #[test]
 fn single() -> Result<(), Error> {
     let tests = load_json()?;
-    tests.run_test_by_name("HTML-style tag with an atomic attribute");
+    tests.run_test_by_name("HTML-style tag with a CSS id and 'id' as an attribute");
     Ok(())
 }
 
 #[test]
 fn completed() -> Result<(), Error> {
     let tests = load_json()?;
+    tests.run_test_by_name("an HTML 5 XML prolog (silent)");
+    tests.run_test_by_name("an HTML 5 doctype");
+    tests.run_test_by_name("an XHTML 1.1 doctype");
+    tests.run_test_by_name("HTML-style multiple attributes");
+    tests.run_test_by_name("an XHTML default (transitional) doctype");
+    tests.run_test_by_name("HTML-style tag with an atomic attribute");
     tests.run_test_by_name("boolean attribute with XHTML");
     tests.run_test_by_name("a self-closing tag ('/' modifier + HTML5)");
     tests.run_test_by_name("a class with underscores");

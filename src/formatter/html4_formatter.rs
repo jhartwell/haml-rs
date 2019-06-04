@@ -17,7 +17,7 @@ impl HtmlFormatter for Html4Formatter {
                 Haml::Comment(_) => html.push_str(&self.comment_to_html(item, arena)),
                 Haml::Text(text) => html.push_str(&format!("{}\n", text.to_owned())),
                 Haml::InnerText(text) => html.push_str(&text),
-                Haml::Prolog(prolog) => html.push_str(&prolog),
+                Haml::Prolog(Some(prolog)) => html.push_str(&prolog),
                 _ => (),
             }
         }
@@ -36,7 +36,7 @@ impl Html4Formatter {
             Haml::Comment(comment) => self.comment_to_html(item, arena),
             Haml::Element(_) => self.element_to_html(item, arena),
             Haml::InnerText(text) => text.to_owned(),
-            Haml::Prolog(prolog) => prolog.to_owned(),
+            Haml::Prolog(Some(prolog)) => prolog.to_owned(),
             _ => String::new(),
         }
     }

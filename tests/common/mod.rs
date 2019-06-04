@@ -75,6 +75,7 @@ impl Test {
                         }
                     }
                 }
+                println!("Format: {}", format);
                 let actual_html = haml::to_html(&self.haml, &format);
                 assert_eq!(self.html, actual_html);
             }

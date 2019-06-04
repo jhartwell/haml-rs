@@ -17,7 +17,8 @@ impl HtmlFormatter for Html5Formatter {
                 Haml::Comment(_) => html.push_str(&self.comment_to_html(item, arena)),
                 Haml::Text(text) => html.push_str(&format!("{}\n", text.to_owned())),
                 Haml::InnerText(text) => html.push_str(&text),
-                Haml::Prolog(prolog) => html.push_str(&prolog),
+                Haml::Prolog(Some(_)) => (),
+                Haml::Prolog(None) => html.push_str("<!DOCTYPE html>"),
                 _ => (),
             }
         }
@@ -36,7 +37,7 @@ impl Html5Formatter {
             Haml::Comment(comment) => self.comment_to_html(item, arena),
             Haml::Element(_) => self.element_to_html(item, arena),
             Haml::InnerText(text) => text.to_owned(),
-            Haml::Prolog(prolog) => prolog.to_owned(),
+            Haml::Prolog(Some(prolog)) => prolog.to_owned(),
             _ => String::new(),
         }
     }
@@ -64,11 +65,13 @@ impl Html5Formatter {
             html.push_str(&format!("<{}", el.name().unwrap()));
             for key in el.attributes().iter() {
                 if let Some(value) = el.get_attribute(key) {
-                    // this needs to be separated eventuallyas this is html5 specific
                     if key.trim() == "checked" && value == "true" {
                         html.push_str(" checked");
                     } else {
-                        html.push_str(&format!(" {}='{}'", key, value.to_owned()));
+                        match value.is_empty() {
+                            false => html.push_str(&format!(" {}='{}'", key.trim(), value)),
+                            true => html.push_str(&format!(" {}", key.trim())),
+                        }
                     }
                 }
             }

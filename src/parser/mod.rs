@@ -80,7 +80,7 @@ pub enum Haml {
     Text(String),
     InnerText(String),
     Comment(String),
-    Prolog(String),
+    Prolog(Option<String>),
     SilentComment(usize),
     Temp(String, u32, u32),
 }
@@ -110,6 +110,18 @@ impl<'a> Parser<'a> {
             } else if let Some(sc) = silent(line) {
                 previous_id = self.arena.insert(sc, previous_id);
                 first_line = false;
+            }
+            if prolog_regex.is_match(line) {
+                first_line = false;
+                let caps = prolog_regex.captures(line).unwrap();
+                let value = match caps.name("type") {
+                    Some(m) => match m.as_str() {
+                        "" => None,
+                        val => Some(val.to_string()),
+                    },
+                    None => None,
+                };
+                self.arena.insert(Haml::Prolog(value), previous_id);
             } else if let Some(el) = Element::from_string(line) {
                 let ws = el.whitespace;
                 let element = Haml::Element(el);
@@ -123,16 +135,6 @@ impl<'a> Parser<'a> {
             } else if let Some(comment) = comment(line) {
                 previous_id = self.arena.insert(Haml::Comment(comment), previous_id);
                 first_line = false;
-            } else if prolog_regex.is_match(line) {
-                first_line = false;
-                let caps = prolog_regex.captures(line).unwrap();
-                let value = match caps.name("type") {
-                    Some(m) => Some(m.as_str()),
-                    _ => None,
-                };
-                let doctype = Doctype::new(&self.format, value);
-                self.arena
-                    .insert(Haml::Prolog(doctype.to_html()), previous_id);
             } else if let Some(text_line) = text_from_string(line) {
                 first_line = false;
                 self.arena.insert(Haml::Text(text_line), previous_id);
