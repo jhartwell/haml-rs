@@ -27,6 +27,23 @@ fn all() -> Result<(), Error> {
 #[test]
 fn section() -> Result<(), Error> {
     let tests = load_json()?;
+    // tests.run_test_section("tags with HTML-style attributes");
+    tests.run_test_section("whitespace removal");
+    tests.run_test_section("conditional comments");
+    tests.run_test_section("whitespace preservation");
+    tests.run_test_section("boolean attributes");
+    tests.run_test_section("HTML escaping");
+    tests.run_test_section("Ruby-style interpolation");
+    tests.run_test_section("internal filters");
+
+    tests.run_test_section("markup comments");
+    tests.run_test_section("silent comments");
+    tests.run_test_section("tags with Ruby-style attributes");
+
+    tests.run_test_section("tags with nested content");
+    tests.run_test_section("tags with inline content");
+    tests.run_test_section("tags with unusual CSS identifiers");
+    tests.run_test_section("tags with unusual HTML characters");
     tests.run_test_section("basic Haml tags and CSS");
     tests.run_test_section("headers");
     Ok(())
@@ -40,7 +57,8 @@ fn section() -> Result<(), Error> {
 #[test]
 fn single() -> Result<(), Error> {
     let tests = load_json()?;
-    tests.run_test_by_name("a self-closing tag (XHTML)");
+    // tests.run_test_by_name("a self-closing tag (HTML4)");
+    tests.run_test_by_name("a tag with '>' appended and nested content");
     Ok(())
 }
 

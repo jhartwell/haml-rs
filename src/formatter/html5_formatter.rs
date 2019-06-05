@@ -1,9 +1,11 @@
 use crate::arena::{Arena, ArenaItem};
 use crate::formatter::HtmlFormatter;
 use crate::parser::Haml;
-
+use std::collections::HashMap;
 #[derive(Debug)]
-pub struct Html5Formatter;
+pub struct Html5Formatter {
+    self_closing_tags: HashMap<String, bool>,
+}
 
 impl HtmlFormatter for Html5Formatter {
     fn generate(&self, arena: &Arena) -> String {
@@ -19,6 +21,9 @@ impl HtmlFormatter for Html5Formatter {
                 Haml::InnerText(text) => html.push_str(&text),
                 Haml::Prolog(Some(_)) => (),
                 Haml::Prolog(None) => html.push_str("<!DOCTYPE html>"),
+                Haml::ConditionalComment(_, _) => {
+                    html.push_str(&self.conditional_comment_to_html(item, arena))
+                }
                 _ => (),
             }
         }
@@ -28,7 +33,9 @@ impl HtmlFormatter for Html5Formatter {
 
 impl Html5Formatter {
     pub fn new() -> Html5Formatter {
-        Html5Formatter {}
+        let mut self_closing_tags: HashMap<String, bool> = HashMap::new();
+        self_closing_tags.insert("meta".to_string(), true);
+        Html5Formatter { self_closing_tags }
     }
 
     fn item_to_html(&self, item: &ArenaItem, arena: &Arena) -> String {
@@ -38,6 +45,7 @@ impl Html5Formatter {
             Haml::Element(_) => self.element_to_html(item, arena),
             Haml::InnerText(text) => text.to_owned(),
             Haml::Prolog(Some(prolog)) => prolog.to_owned(),
+            Haml::ConditionalComment(_, _) => self.conditional_comment_to_html(item, arena),
             _ => String::new(),
         }
     }
@@ -59,10 +67,24 @@ impl Html5Formatter {
         html
     }
 
+    fn conditional_comment_to_html(&self, item: &ArenaItem, arena: &Arena) -> String {
+        let mut html = String::new();
+        if let Haml::ConditionalComment(ws, value) = &item.value {
+            html.push_str(&format!("<!--[{}]>\n", value));
+            for child in item.children.iter() {
+                let i = arena.item(*child);
+                html.push_str(&self.item_to_html(i, arena));
+            }
+            html.push_str("<![endif]-->")
+        }
+        html
+    }
+
     fn element_to_html(&self, item: &ArenaItem, arena: &Arena) -> String {
         let mut html = String::new();
         if let Haml::Element(el) = &item.value {
             html.push_str(&format!("<{}", el.name().unwrap()));
+            
             for key in el.attributes().iter() {
                 if let Some(value) = el.get_attribute(key) {
                     if key.trim() == "checked" && value == "true" {
@@ -77,14 +99,14 @@ impl Html5Formatter {
             }
 
             html.push('>');
-            if !el.self_close {
+            if !el.self_close && !self.self_closing_tags.contains_key(&el.name().unwrap()) {
                 if let Some(text) = &el.inline_text {
                     html.push_str(&format!("{}", text.trim()));
                 }
                 if item.children.len() > 0 {
                     let mut index = 0;
                     if Some("pre".to_owned()) != el.name()
-                        && Some("textarea".to_owned()) != el.name()
+                        && Some("textarea".to_owned()) != el.name() && !el.whitespace_removal
                     {
                         html.push('\n');
                     }
@@ -97,7 +119,13 @@ impl Html5Formatter {
                     html = html.trim_end().to_owned();
                 }
                 if Some("input".to_owned()) != el.name() {
-                    html.push_str(&format!("</{}>\n", el.name().unwrap()));
+                    html.push_str(&format!("</{}>", el.name().unwrap()));
+                    if item.children.len() > 0 {
+                        if el.whitespace_removal {
+                            panic!("{:?}", item);
+                        }
+                        html.push('\n');
+                    }
                 }
             }
         }

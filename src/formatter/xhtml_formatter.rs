@@ -31,12 +31,10 @@ impl HtmlFormatter for XHtmlFormatter {
 
 impl XHtmlFormatter {
     pub fn new() -> XHtmlFormatter {
-        let mut self_closing_tags : HashMap<String, bool> = HashMap::new();
+        let mut self_closing_tags: HashMap<String, bool> = HashMap::new();
         self_closing_tags.insert("input".to_string(), true);
         self_closing_tags.insert("meta".to_string(), true);
-        XHtmlFormatter {
-            self_closing_tags
-        }
+        XHtmlFormatter { self_closing_tags }
     }
 
     fn prolog_to_html(&self, value: &Option<String>) -> &str {
@@ -57,6 +55,19 @@ impl XHtmlFormatter {
         }}}
     }
 
+    fn conditional_comment_to_html(&self, item: &ArenaItem, arena: &Arena) -> String {
+        let mut html = String::new();
+        if let Haml::ConditionalComment(ws, value) = &item.value {
+            html.push_str(&format!("<!--[{}]>\n", value));
+            for child in item.children.iter() {
+                let i = arena.item(*child);
+                html.push_str(&self.item_to_html(i, arena));
+            }
+            html.push_str("<![endif]-->")
+        }
+        html
+    }
+
     fn item_to_html(&self, item: &ArenaItem, arena: &Arena) -> String {
         match &item.value {
             Haml::Text(text) => format!("{}\n", text.to_owned()),
@@ -64,6 +75,7 @@ impl XHtmlFormatter {
             Haml::Element(_) => self.element_to_html(item, arena),
             Haml::InnerText(text) => text.to_owned(),
             Haml::Prolog(prolog) => self.prolog_to_html(prolog).to_string(),
+            Haml::ConditionalComment(ws, val) => self.conditional_comment_to_html(item, arena),
             _ => String::new(),
         }
     }

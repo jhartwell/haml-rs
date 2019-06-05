@@ -18,6 +18,7 @@ pub struct Element {
     pub attributes: HashMap<String, Vec<String>>,
     pub attribute_order: BTreeSet<String>,
     pub self_close: bool,
+    pub whitespace_removal: bool,
 }
 
 impl Element {
@@ -52,6 +53,10 @@ impl Element {
 
     fn create_div<'a>(caps: &'a Captures) -> Element {
         let (mut attributes, order) = Element::handle_attributes(caps);
+        let whitespace_removal = match caps.get(0) {
+            Some(s) => s.as_str().ends_with("<"),
+            None => false,
+        };
         Element {
             whitespace: Element::handle_whitespace(caps),
             name: Some("div".to_string()),
@@ -60,6 +65,7 @@ impl Element {
             attributes: attributes,
             attribute_order: order,
             self_close: Element::handle_self_close(caps),
+            whitespace_removal,
         }
     }
 
@@ -283,6 +289,10 @@ impl Element {
 
     fn create_element<'a>(caps: &'a Captures) -> Element {
         let (attributes, order) = Element::handle_attributes(caps);
+        let whitespace_removal = match caps.get(0) {
+            Some(s) => s.as_str().ends_with("<"),
+            None => false,
+        };
         Element {
             whitespace: Element::handle_whitespace(caps),
             name: Element::handle_name(caps),
@@ -291,6 +301,7 @@ impl Element {
             attributes: attributes,
             attribute_order: order,
             self_close: Element::handle_self_close(caps),
+            whitespace_removal,
         }
     }
 

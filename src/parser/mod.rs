@@ -7,7 +7,9 @@ use crate::formatter::html5_formatter::Html5Formatter;
 use crate::formatter::xhtml_formatter::XHtmlFormatter;
 use crate::formatter::xml_formatter::XmlFormatter;
 use crate::formatter::HtmlFormatter;
-use crate::regex::{prolog, sanitize, silent_comment, COMMENT_REGEX, TEXT_REGEX};
+use crate::regex::{
+    conditional_comment, prolog, sanitize, silent_comment, COMMENT_REGEX, TEXT_REGEX,
+};
 use crate::Format;
 use doctype::Doctype;
 use element::{Element, ElementType};
@@ -73,6 +75,26 @@ fn silent(line: &str) -> Option<Haml> {
     }
 }
 
+fn conditional(line: &str) -> Option<Haml> {
+    let r = Regex::new(&conditional_comment()).unwrap();
+    let mut whitespace = 0;
+    let mut value = String::new();
+    match r.captures(line) {
+        Some(m) => {
+            match m.name("ws") {
+                Some(ws) => whitespace = ws.as_str().len(),
+                None => whitespace = 0,
+            }
+            match m.name("val") {
+                Some(val) => value = val.as_str().to_string(),
+                None => (),
+            }
+            Some(Haml::ConditionalComment(whitespace, value))
+        }
+        None => None,
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Haml {
     Root(),
@@ -82,7 +104,7 @@ pub enum Haml {
     Comment(String),
     Prolog(Option<String>),
     SilentComment(usize),
-    Temp(String, u32, u32),
+    ConditionalComment(usize, String),
 }
 
 pub struct Parser<'a> {
@@ -103,15 +125,17 @@ impl<'a> Parser<'a> {
         let mut first_line = true;
         let prolog_regex = Regex::new(&prolog()).unwrap();
         for line in haml.lines() {
-            //     // matches lines that start with &=
+                // matches lines that start with &=
             if let Some(sanitized_html) = sanitize_html(line) {
                 self.arena.insert(Haml::Text(sanitized_html), previous_id);
                 first_line = false;
             } else if let Some(sc) = silent(line) {
                 previous_id = self.arena.insert(sc, previous_id);
                 first_line = false;
-            }
-            if prolog_regex.is_match(line) {
+            } else if let Some(cc) = conditional(line) {
+                previous_id = self.arena.insert(cc, previous_id);
+                first_line = false;
+            } else if prolog_regex.is_match(line) {
                 first_line = false;
                 let caps = prolog_regex.captures(line).unwrap();
                 let value = match caps.name("type") {
@@ -125,6 +149,7 @@ impl<'a> Parser<'a> {
             } else if let Some(el) = Element::from_string(line) {
                 let ws = el.whitespace;
                 let element = Haml::Element(el);
+                
                 if !first_line {
                     let p_id = self.arena.from_whitespace(previous_id, ws);
                     previous_id = self.arena.insert(element, p_id);

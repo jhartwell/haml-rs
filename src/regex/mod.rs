@@ -25,6 +25,10 @@ pub fn silent_comment() -> String {
     r"^(?P<ws>\s*)(-#)".to_owned()
 }
 
+pub fn conditional_comment() -> String {
+    r#"(?P<ws>(\s*))[\[](?P<val>([^\]]*))[\]]"#.to_string()
+}
+
 pub fn element() -> String {
     format!(
         "^(?P<ws>{})*(?P<name>{}){{1}}(?P<classid>({})*)(?P<ruby_attributes>({}){{0,1}})(?P<html_attributes>({}){{0,1}})(?P<self_close>{}{{0,1}})(?P<text>{})*",

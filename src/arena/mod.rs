@@ -58,16 +58,33 @@ impl Arena {
     pub fn from_whitespace(&self, start_index: usize, ws: usize) -> usize {
         let mut idx = start_index;
         let mut parent = start_index;
+        
         loop {
             let i = &self.items[idx];
             match &i.value {
                 Haml::Element(ref el) => {
+                    if el.whitespace == 0 && ws == 0 {
+                        parent = 0;
+                        break;
+                    }
                     if el.whitespace < ws {
                         parent = idx;
                         break;
                     }
                 }
                 Haml::SilentComment(whitespace) => {
+                    if *whitespace == 0 as usize && ws == 0 {
+                        break;
+                    }
+                    if *whitespace < ws {
+                        parent = idx;
+                        break;
+                    }
+                },
+                Haml::ConditionalComment(whitespace, _) => {
+                    if *whitespace == 0 as usize && ws == 0 {
+                        break;
+                    }
                     if *whitespace < ws {
                         parent = idx;
                         break;
@@ -75,13 +92,6 @@ impl Arena {
                 }
                 _ => idx = i.parent,
             }
-            // if let Haml::Element(el) = &i.value {
-            //     if el.whitespace < ws {
-            //         parent = idx;
-            //         break;
-            //     }
-            // }
-            // idx = i.parent;
         }
         parent
     }

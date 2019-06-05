@@ -1,9 +1,11 @@
 use crate::arena::{Arena, ArenaItem};
 use crate::formatter::HtmlFormatter;
 use crate::parser::Haml;
-
+use std::collections::HashMap;
 #[derive(Debug)]
-pub struct Html4Formatter;
+pub struct Html4Formatter {
+    self_closing_tags: HashMap<String, bool>,
+}
 
 impl HtmlFormatter for Html4Formatter {
     fn generate(&self, arena: &Arena) -> String {
@@ -18,6 +20,9 @@ impl HtmlFormatter for Html4Formatter {
                 Haml::Text(text) => html.push_str(&format!("{}\n", text.to_owned())),
                 Haml::InnerText(text) => html.push_str(&text),
                 Haml::Prolog(prolog) => html.push_str(&self.prolog_to_html(prolog)),
+                Haml::ConditionalComment(ws, val) => {
+                    html.push_str(&self.conditional_comment_to_html(item, arena))
+                }
                 _ => (),
             }
         }
@@ -27,7 +32,9 @@ impl HtmlFormatter for Html4Formatter {
 
 impl Html4Formatter {
     pub fn new() -> Html4Formatter {
-        Html4Formatter {}
+        let mut self_closing_tags: HashMap<String, bool> = HashMap::new();
+        self_closing_tags.insert("meta".to_string(), true);
+        Html4Formatter { self_closing_tags }
     }
 
     fn prolog_to_html(&self, value: &Option<String>) -> &str {
@@ -70,7 +77,18 @@ impl Html4Formatter {
         html.push_str("-->");
         html
     }
-
+    fn conditional_comment_to_html(&self, item: &ArenaItem, arena: &Arena) -> String {
+        let mut html = String::new();
+        if let Haml::ConditionalComment(ws, value) = &item.value {
+            html.push_str(&format!("<!--[{}]>\n", value));
+            for child in item.children.iter() {
+                let i = arena.item(*child);
+                html.push_str(&self.item_to_html(i, arena));
+            }
+            html.push_str("<![endif]-->")
+        }
+        html
+    }
     fn element_to_html(&self, item: &ArenaItem, arena: &Arena) -> String {
         let mut html = String::new();
         if let Haml::Element(el) = &item.value {
@@ -87,7 +105,7 @@ impl Html4Formatter {
             }
 
             html.push('>');
-            if !el.self_close {
+            if !el.self_close && !self.self_closing_tags.contains_key(&el.name().unwrap()) {
                 if let Some(text) = &el.inline_text {
                     html.push_str(&format!("{}", text.trim()));
                 }
