@@ -26,6 +26,9 @@ impl HtmlFormatter for Html5Formatter {
                 }
                 _ => (),
             }
+            if item.children.len() == 0 && item.parent != 0 {
+                html.push('\n');
+            }
         }
         html.trim().to_owned()
     }
@@ -43,7 +46,7 @@ impl Html5Formatter {
             Haml::Text(text) => format!("{}\n", text.to_owned()),
             Haml::Comment(comment) => self.comment_to_html(item, arena),
             Haml::Element(_) => self.element_to_html(item, arena),
-            Haml::InnerText(text) => text.to_owned(),
+            Haml::InnerText(text) => format!("{}\n", text),
             Haml::Prolog(Some(prolog)) => prolog.to_owned(),
             Haml::ConditionalComment(_, _) => self.conditional_comment_to_html(item, arena),
             _ => String::new(),
@@ -74,7 +77,6 @@ impl Html5Formatter {
             for child in item.children.iter() {
                 let i = arena.item(*child);
                 html.push_str(&self.item_to_html(i, arena));
-                html.push('\n');
             }
             html.push_str("<![endif]-->")
         }
@@ -101,9 +103,12 @@ impl Html5Formatter {
 
             html.push('>');
             if !el.self_close && !self.self_closing_tags.contains_key(&el.name().unwrap()) {
+                let mut has_inline_text = false;
                 if let Some(text) = &el.inline_text {
-                    html.push_str(&format!("{}", text.trim()));
+                    html.push_str(&format!("{}", text));
+                    has_inline_text = true;
                 }
+                    
                 if item.children.len() > 0 {
                     let mut index = 0;
                     if Some("pre".to_owned()) != el.name()
@@ -128,7 +133,9 @@ impl Html5Formatter {
                         if !el.whitespace_removal_outside {
                             html.push('\n');
                         }
-                    } else if let Some(_) = &el.inline_text {
+                    } else if has_inline_text && item.parent != 0 {
+                        html.push('\n');
+                    } else if item.parent != 0 {
                         html.push('\n');
                     }
                 }

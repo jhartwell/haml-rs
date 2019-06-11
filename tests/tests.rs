@@ -54,7 +54,7 @@ fn section() -> Result<(), Error> {
 fn double() -> Result<(), Error> {
     let tests = load_json()?;
     tests.run_test_by_name("a tag with '>' appended and nested content");
-    tests.run_test_by_name("a conditional comment");
+    tests.run_test_by_name("Inline content multiple simple tags");
     Ok(())
 }
 
@@ -67,7 +67,7 @@ fn double() -> Result<(), Error> {
 fn single() -> Result<(), Error> {
     let tests = load_json()?;
     // tests.run_test_by_name("a self-closing tag (HTML4)");
-    tests.run_test_by_name("a tag with '>' appended and nested content");
+    tests.run_test_by_name("Inline content multiple simple tags");
     Ok(())
 }
 
