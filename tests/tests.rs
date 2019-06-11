@@ -49,6 +49,15 @@ fn section() -> Result<(), Error> {
     Ok(())
 }
 
+
+#[test]
+fn double() -> Result<(), Error> {
+    let tests = load_json()?;
+    tests.run_test_by_name("a tag with '>' appended and nested content");
+    tests.run_test_by_name("a conditional comment");
+    Ok(())
+}
+
 /*
  * This is used for testing one specific test from the JSON file at a time.
  * Pass in the key for the test data to run_test_by_name and it will execute

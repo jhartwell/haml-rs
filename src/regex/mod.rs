@@ -6,7 +6,7 @@ pub const TEXT_REGEX: &str = r"^(\s*)(?P<text>.+)";
 pub const COMMENT_REGEX: &str = r"\s*/(?P<comment>.*)";
 
 fn element_name() -> String {
-    r"[%]{1}[\w|:|\-|_]+".to_owned()
+    r"[%]{1}[\w|:|\-|_]+[>|<]{0,1}".to_owned()
 }
 
 pub fn element_class_id() -> String {

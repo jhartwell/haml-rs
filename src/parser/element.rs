@@ -18,7 +18,8 @@ pub struct Element {
     pub attributes: HashMap<String, Vec<String>>,
     pub attribute_order: BTreeSet<String>,
     pub self_close: bool,
-    pub whitespace_removal: bool,
+    pub whitespace_removal_inside: bool,
+    pub whitespace_removal_outside: bool,
 }
 
 impl Element {
@@ -53,10 +54,6 @@ impl Element {
 
     fn create_div<'a>(caps: &'a Captures) -> Element {
         let (mut attributes, order) = Element::handle_attributes(caps);
-        let whitespace_removal = match caps.get(0) {
-            Some(s) => s.as_str().ends_with("<"),
-            None => false,
-        };
         Element {
             whitespace: Element::handle_whitespace(caps),
             name: Some("div".to_string()),
@@ -65,7 +62,8 @@ impl Element {
             attributes: attributes,
             attribute_order: order,
             self_close: Element::handle_self_close(caps),
-            whitespace_removal,
+            whitespace_removal_inside: false,
+            whitespace_removal_outside: false,
         }
     }
 
@@ -85,16 +83,24 @@ impl Element {
         }
     }
 
-    fn handle_name(caps: &Captures) -> Option<String> {
+    fn handle_name(caps: &Captures) -> (Option<String>, bool, bool) {
         match caps.name("name") {
             Some(name) => {
+                
                 let mut val = name.as_str().to_owned();
+                let whitespace_removal_inside = val.ends_with("<");
+                let whitespace_removal_outside = val.ends_with(">");
+                let len = val.len();
                 if val.starts_with("%") {
                     val = val[1..].to_owned();
+                    if whitespace_removal_inside || whitespace_removal_outside {
+                        // len - 1 is the full string, len - 2 takes the last character off
+                        val = val[0..len - 2].to_string();
+                    }
                 }
-                Some(val.as_str().to_owned())
+                (Some(val.as_str().to_owned()), whitespace_removal_inside, whitespace_removal_outside)
             }
-            None => None,
+            None => (None, false, false)
         }
     }
 
@@ -102,6 +108,18 @@ impl Element {
         match val.starts_with("\"") {
             true => val[1..val.len() - 1].to_owned(),
             false => val.to_owned(),
+        }
+    }
+
+    fn handle_whitespace_removal(caps: &Captures) -> (bool, bool) {
+        match caps.name("name") {
+            None => (false, false),
+            Some(m) => {
+                let val = m.as_str();
+                let remove_surrounding_tag = val.ends_with(">");
+                let remove_inside_tag = val.ends_with("<");
+                (remove_inside_tag, remove_surrounding_tag)
+            }
         }
     }
 
@@ -289,19 +307,17 @@ impl Element {
 
     fn create_element<'a>(caps: &'a Captures) -> Element {
         let (attributes, order) = Element::handle_attributes(caps);
-        let whitespace_removal = match caps.get(0) {
-            Some(s) => s.as_str().ends_with("<"),
-            None => false,
-        };
+        let (name, whitespace_removal_inside, whitespace_removal_outside) = Element::handle_name(caps);
         Element {
             whitespace: Element::handle_whitespace(caps),
-            name: Element::handle_name(caps),
+            name,
             element_type: ElementType::Other(),
             inline_text: Element::handle_inline_text(caps),
             attributes: attributes,
             attribute_order: order,
             self_close: Element::handle_self_close(caps),
-            whitespace_removal,
+            whitespace_removal_inside,
+            whitespace_removal_outside,
         }
     }
 

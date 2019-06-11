@@ -74,6 +74,7 @@ impl Html5Formatter {
             for child in item.children.iter() {
                 let i = arena.item(*child);
                 html.push_str(&self.item_to_html(i, arena));
+                html.push('\n');
             }
             html.push_str("<![endif]-->")
         }
@@ -106,7 +107,7 @@ impl Html5Formatter {
                 if item.children.len() > 0 {
                     let mut index = 0;
                     if Some("pre".to_owned()) != el.name()
-                        && Some("textarea".to_owned()) != el.name() && !el.whitespace_removal
+                        && Some("textarea".to_owned()) != el.name() && !el.whitespace_removal_inside
                     {
                         html.push('\n');
                     }
@@ -115,15 +116,19 @@ impl Html5Formatter {
                         html.push_str(&self.item_to_html(i, arena));
                     }
                 }
+                if el.whitespace_removal_inside {
+                    html = html.trim_end().to_string();
+                }
                 if Some("pre".to_owned()) == el.name() || Some("textarea".to_owned()) == el.name() {
                     html = html.trim_end().to_owned();
                 }
                 if Some("input".to_owned()) != el.name() {
                     html.push_str(&format!("</{}>", el.name().unwrap()));
-                    if item.children.len() > 0 {
-                        if el.whitespace_removal {
-                            panic!("{:?}", item);
+                    if item.children.len() > 0 { 
+                        if !el.whitespace_removal_outside {
+                            html.push('\n');
                         }
+                    } else if let Some(_) = &el.inline_text {
                         html.push('\n');
                     }
                 }
