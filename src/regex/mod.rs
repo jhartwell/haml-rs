@@ -88,3 +88,15 @@ pub fn class() -> String {
 pub fn id() -> String {
     r"([#]{1}[^.|^#]+)*".to_owned()
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use ::regex::Regex;
+    #[test]
+    fn zzz() {
+        let a = "(a='b'\nc='d')";
+        let r = Regex::new(&html_attributes()).unwrap();
+        assert!(r.is_match(a));
+    }
+}
