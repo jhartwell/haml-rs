@@ -98,3 +98,32 @@ impl Element {
     }
 }
 impl Haml for Element {}
+
+pub(crate) struct Class {
+    pub name: String,
+}
+
+impl Class {
+    pub fn new(name: &str) -> Class {
+        Class {
+            name: name.to_string(),
+        }
+    }
+}
+
+impl Haml for Class {}
+
+
+pub(crate) struct Id {
+    pub name: String,
+}
+
+impl Id {
+    pub fn new(name: &str) -> Id {
+        Id {
+            name: name.to_string(),
+        }
+    }
+}
+
+impl Haml for Id {}

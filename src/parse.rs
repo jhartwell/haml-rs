@@ -1,6 +1,4 @@
-use crate::{Declaration, Element, Haml, Token};
-
-// fn declaration(tokens: &Vec<Token>, index: usize) -> (usize, Option<)
+use crate::{Class, Declaration, Element, Haml, Id, Token};
 
 struct State<'a> {
     tokens: &'a Vec<Token>,
@@ -44,10 +42,6 @@ impl<'a> State<'a> {
                         _ => {
                             self.index = temp;
                             None
-                        },
-                        None => {
-                            self.index = temp;
-                            None
                         }
                     }
                 },
@@ -61,16 +55,50 @@ impl<'a> State<'a> {
         }
     }
 
+    fn classes_and_ids(&mut self, items: &mut Vec<Box<dyn Haml>>) {
+        match self.get_next() {
+            Some(Token::Period()) => {
+                match self.get_next() {
+                    Some(Token::Text(txt)) => {
+                        items.push(Box::new(Class::new(txt)));
+                        self.classes_and_ids(items);
+                    },
+                    _ => (),
+                }
+            },
+            Some(Token::Hashtag()) => {
+                match self.get_next() {
+                    Some(Token::Text(txt)) => {
+                        items.push(Box::new(Id::new(txt)));
+                        self.classes_and_ids(items);
+                    },
+                    _ => (),
+                }
+            },
+            Some(Token::OpenParen()) => (),
+            Some(Token::OpenBrace()) => (),
+            _ => panic!("Invalid token"),
+        }
+    }
+
     fn element(&mut self) -> Option<Box<dyn Haml>> {
-        let mut element : Option<Element> = None;
+        let mut temp = self.index;
         if self.index + 1 < self.length {
-            let temp = self.index;
             match self.get_next() {
                 Some(Token::Text(txt)) => {
-                    self.index += 1;
-                    element = Some(Element::new(&txt.to_string()));
-                    None
-                },
+                    self.index = self.index + 1;
+                    let inner_temp = self.index;
+                    match self.get_next() {
+                        Some(Token::Period()) => {
+                            let mut items = vec![];
+                            self.classes_and_ids(&mut items);
+                        }
+                    }
+                    let element = Element::new(&txt.to_string());
+                    let mut items = vec![];
+                    self.classes_and_ids(&mut items);
+                    element
+                                },
                 _ => {
                     self.index = temp;
                     None
