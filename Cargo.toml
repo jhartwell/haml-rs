@@ -1,6 +1,6 @@
 [package]
 name = "hamlrs"
-version = "0.4.2"
+version = "0.4.3"
 authors = ["Jon Hartwell <jon@dontbreakthebuild.com>"]
 license = "MIT"
 description = "A Rust library for parsing [Haml](http://haml.info) templates"
